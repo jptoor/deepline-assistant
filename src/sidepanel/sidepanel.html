@@ -2,283 +2,110 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Deepline</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deepline Assistant</title>
 <style>
   :root {
-    color-scheme: light;
-    --ink: #1C112A;
-    --ink-2: #3A2D4A;
-    --muted: #6B6478;
-    --line: #E8E3EE;
-    --paper: #FBF9FC;
-    --paper-2: #F3F0F7;
-    --paper-3: #EBE6F1;
-    --ok: #1F7A3D; --ok-bg: #E4F4E9;
-    --warn: #8A5A00; --warn-bg: #FFF3D6;
+    color-scheme: light dark;
+    --ink: #1C112A; --ink-2: #3A2D4A; --muted: #6B6478; --line: #E8E3EE;
+    --paper: #FBF9FC; --paper-2: #F3F0F7; --card: #fff;
+    --ok: #1F7A3D; --ok-bg: #E4F4E9; --info: #234E8C; --info-bg: #E4EEFB;
     --err: #A8261E; --err-bg: #FCE8E6;
-    --info: #234E8C; --info-bg: #E4EEFB;
-    --r: 8px;
-    --ease: cubic-bezier(.22,1,.36,1);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --ink: #F1ECF6; --ink-2: #D6CDE0; --muted: #A79FB3; --line: #3A3245; --paper: #17121D; --paper-2: #221B2A; --card: #1E1826;
+      --ok: #7BD49A; --ok-bg: #1C3325; --info: #9DBBEA; --info-bg: #1C2940; --err: #F0A097; --err-bg: #3D1F1C; }
   }
   * { box-sizing: border-box; }
-  html, body { height: 100%; }
-  body { margin: 0; font: 13.5px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; color: var(--ink); background: var(--paper); display: flex; flex-direction: column; min-width: 300px; }
-  button { font: inherit; color: inherit; cursor: pointer; }
+  body { margin: 0; font: 13px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; color: var(--ink); background: var(--paper); min-width: 280px; }
+  button, input { font: inherit; color: inherit; }
+  button { cursor: pointer; }
   button:disabled { cursor: default; opacity: .45; }
-  button:focus-visible, input:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  :focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
   [hidden] { display: none !important; }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 14px 4px; }
+  header b { font-size: 14px; }
   .muted { color: var(--muted); }
   .small { font-size: 12px; }
-
-  /* Header */
-  header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px 10px; }
-  header .brand { display: flex; align-items: center; gap: 8px; }
-  header .brand img { display: block; }
-  header .brand span { font-size: 11px; color: var(--muted); letter-spacing: .02em; }
-  .icon-btn { background: none; border: 0; padding: 6px; border-radius: 6px; color: var(--muted); display: inline-flex; }
-  .icon-btn:hover { background: var(--paper-2); color: var(--ink); }
-
-  /* Destination chip */
-  .dest { margin: 0 16px; }
-  .dest-btn { width: 100%; display: flex; align-items: center; gap: 10px; text-align: left; background: var(--paper-2); border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; }
-  .dest-btn:hover { background: var(--paper-3); }
-  .dest-btn .lbl { font-size: 11px; color: var(--muted); display: block; }
-  .dest-btn .val { font-weight: 600; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .dest-btn .grow { min-width: 0; flex: 1; }
-  .dest-btn .chev { color: var(--muted); }
-  .dest-btn.empty { border-style: dashed; background: transparent; }
-  .dest-btn.empty .val { color: var(--ink); }
-
-  /* Scroll body */
-  main { flex: 1; overflow: auto; padding: 6px 16px 18px; }
-  section { margin-top: 18px; }
-  h2 { font-size: 12px; font-weight: 600; color: var(--muted); margin: 0 0 8px; display: flex; align-items: center; justify-content: space-between; gap: 8px; letter-spacing: .01em; }
-  h2 .actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
-  .link { background: none; border: 0; padding: 0; color: var(--ink); font-size: 12px; font-weight: 500; text-decoration: underline; text-underline-offset: 2px; }
-  .link.quiet { color: var(--muted); text-decoration: none; }
-  .link.quiet:hover { color: var(--ink); text-decoration: underline; }
-
-  /* Person rows */
-  .people { list-style: none; margin: 0; padding: 0; }
-  .person { display: flex; align-items: center; gap: 10px; padding: 7px 0; }
-  .person + .person { border-top: 1px solid var(--line); }
-  .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--paper-3); color: var(--ink-2); font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; flex: none; overflow: hidden; }
-  .avatar img { width: 100%; height: 100%; object-fit: cover; }
-  .person .who { min-width: 0; flex: 1; }
-  .person .name { display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .person .meta { display: block; font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .person .x { opacity: .4; font-size: 16px; line-height: 1; transition: opacity .15s; }
-  .person:hover .x, .person:focus-within .x, .person .x:focus-visible { opacity: 1; }
-  .card { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; background: #fff; }
-  .card.hero { padding: 14px; }
-  .card.hero .person { padding: 0; }
-  .card.hero .avatar { width: 44px; height: 44px; font-size: 15px; }
-  .card.hero .name { font-size: 15px; white-space: normal; }
-
-  /* Buttons */
-  .btn { border: 1px solid var(--line); background: #fff; border-radius: var(--r); padding: 7px 12px; font-weight: 600; font-size: 12.5px; }
-  .btn:hover { background: var(--paper-2); }
-  .btn.primary { background: var(--ink); color: #fff; border-color: var(--ink); }
-  .btn.primary:hover { background: var(--ink-2); }
-  .btn.tiny { padding: 3px 8px; font-size: 12px; font-weight: 500; }
-  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
-
-  /* Empty / teach states */
-  .teach { color: var(--muted); font-size: 12.5px; padding: 12px 0; }
-  .teach b { color: var(--ink); font-weight: 600; }
-  .teach kbd { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; border-radius: 999px; border: 1px solid var(--ink); font: 600 11px/1 inherit; color: var(--ink); padding: 0 4px; vertical-align: -3px; }
-
-  /* Notes */
-  .note { border-radius: var(--r); padding: 9px 11px; font-size: 12.5px; margin-top: 10px; }
-  .note.warn { background: var(--warn-bg); color: var(--warn); }
-  .note.ok { background: var(--ok-bg); color: var(--ok); }
-  .note.err { background: var(--err-bg); color: var(--err); }
-  .note.info { background: var(--info-bg); color: var(--info); }
-  .note .link { color: inherit; }
-
-  /* Search import */
-  .import { display: flex; flex-direction: column; gap: 8px; }
-  .import .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-  .import .row .btn { flex: 1 1 100%; }
-  @media (min-width: 340px) { .import .row .btn { flex: 0 0 auto; } }
-  .import input[type=number] { width: 72px; padding: 6px 8px; border: 1px solid var(--line); border-radius: var(--r); font: inherit; background: #fff; }
-  .import .title { font-weight: 600; }
-
-  /* Recent */
-  .recent { list-style: none; padding: 0; margin: 0; }
-  .recent li { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-top: 1px solid var(--line); font-size: 12.5px; }
-  .recent li:first-child { border-top: 0; }
-  .recent .what { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .recent .when { color: var(--muted); font-size: 11px; }
-  .chip { font-size: 11px; font-weight: 600; border-radius: 999px; padding: 2px 8px; white-space: nowrap; }
-  .chip.sent { background: var(--ok-bg); color: var(--ok); }
-  .chip.pending, .chip.sending { background: var(--info-bg); color: var(--info); }
-  .chip.retry { background: var(--warn-bg); color: var(--warn); }
-  .chip.failed { background: var(--err-bg); color: var(--err); }
-
-  /* Pinned action bar */
-  .bar { border-top: 1px solid var(--line); background: var(--paper); padding: 10px 16px 12px; }
-  .bar .cta { width: 100%; border: 0; border-radius: 10px; background: var(--ink); color: #fff; font-weight: 600; font-size: 14px; padding: 12px 14px; white-space: normal; line-height: 1.3; transition: transform .18s var(--ease); }
-  .bar .cta:not(:disabled):hover { background: var(--ink-2); }
-  .bar .cta:not(:disabled):active { transform: scale(.985); }
-  .bar .cta:disabled { background: var(--paper-3); color: var(--muted); opacity: 1; }
-  .bar .sub { display: flex; justify-content: space-between; margin-top: 6px; font-size: 11.5px; color: var(--muted); }
-  .bar .status { margin-top: 6px; font-size: 12.5px; min-height: 17px; }
-  .bar .status.ok { color: var(--ok); } .bar .status.err { color: var(--err); } .bar .status.warn { color: var(--warn); }
-
-  /* Picker sheet */
-  .sheet { position: fixed; inset: 0; background: rgba(28,17,42,.28); display: flex; align-items: flex-end; z-index: 10; }
-  .sheet .panel { width: 100%; max-height: 82vh; background: var(--paper); border-radius: 14px 14px 0 0; display: flex; flex-direction: column; transform: translateY(0); animation: up .22s var(--ease); }
-  @keyframes up { from { transform: translateY(24px); opacity: .6; } to { transform: none; opacity: 1; } }
-  @media (prefers-reduced-motion: reduce) { .sheet .panel { animation: none; } }
-  .sheet .head { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 8px; font-weight: 600; font-size: 15px; }
-  .sheet .search { margin: 0 16px 8px; }
-  .sheet .search input { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--r); font: inherit; background: #fff; }
-  .sheet ul { list-style: none; margin: 0; padding: 0 8px 12px; overflow: auto; }
-  .sheet li { display: flex; align-items: center; gap: 8px; }
-  .sheet li .pick { flex: 1; text-align: left; background: none; border: 0; padding: 10px 8px; border-radius: var(--r); display: flex; align-items: center; gap: 10px; min-width: 0; }
-  .sheet li .pick:hover { background: var(--paper-2); }
-  .sheet li .pick .n { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .sheet li .pick .k { font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .sheet li .pick .t { min-width: 0; }
-  .sheet li .pick .kind { font-size: 10.5px; font-weight: 600; letter-spacing: .02em; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 1px 6px; flex: none; }
-  .sheet li.current .pick { background: var(--paper-3); }
-  .sheet .star { background: none; border: 0; padding: 8px; color: var(--muted); border-radius: 6px; }
-  .sheet .star[aria-pressed="true"] { color: #C98A00; }
-  .sheet .foot { padding: 6px 16px 14px; border-top: 1px solid var(--line); }
+  main { padding: 4px 14px 24px; }
+  section { margin-top: 14px; }
+  h2 { font-size: 12px; font-weight: 600; color: var(--muted); margin: 0 0 6px; display: flex; justify-content: space-between; align-items: center; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+  .title { font-size: 15px; font-weight: 600; overflow-wrap: anywhere; }
+  .btn { border: 1px solid var(--line); background: var(--card); border-radius: 8px; padding: 7px 10px; font-weight: 600; width: 100%; text-align: left; display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+  .btn:hover:not(:disabled) { background: var(--paper-2); }
+  .btn.primary { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .btn .why { font-weight: 400; font-size: 11px; opacity: .8; }
+  .stack { display: grid; gap: 6px; margin-top: 10px; }
+  .link { background: none; border: 0; padding: 0; text-decoration: underline; text-underline-offset: 2px; font-size: 12px; }
+  .chip { font-size: 11px; font-weight: 600; border-radius: 999px; padding: 1px 8px; white-space: nowrap; background: var(--info-bg); color: var(--info); }
+  .chip.completed { background: var(--ok-bg); color: var(--ok); }
+  .chip.failed, .chip.cancelled { background: var(--err-bg); color: var(--err); }
+  .rows { list-style: none; margin: 0; padding: 0; }
+  .row { padding: 8px 0; border-top: 1px solid var(--line); display: grid; gap: 2px; }
+  .row:first-child { border-top: 0; }
+  .row .top { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+  .row .name { font-weight: 600; background: none; border: 0; padding: 0; text-align: left; overflow-wrap: anywhere; }
+  .row .name:hover { text-decoration: underline; }
+  .val { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; background: none; border: 0; padding: 0; text-align: left; overflow-wrap: anywhere; }
+  .val:hover { text-decoration: underline; }
+  .err { color: var(--err); font-size: 12px; overflow-wrap: anywhere; }
+  input[type=search], input[type=url] { width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; background: var(--card); }
+  footer { padding: 0 14px 16px; }
+  details summary { cursor: pointer; }
 </style>
 </head>
 <body>
 <header>
-  <span class="brand"><img src="brand/deepline-wordmark.svg" alt="Deepline" height="14"><span id="account">for LinkedIn</span></span>
-  <button id="options" class="icon-btn" type="button" title="Settings" aria-label="Settings">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
-  </button>
+  <b>Deepline Assistant</b>
+  <span id="who" class="small muted"></span>
 </header>
-
-<div class="dest">
-  <button id="destBtn" class="dest-btn" type="button" aria-haspopup="dialog">
-    <img src="brand/deepline-mark.svg" alt="" width="18" height="18">
-    <span class="grow"><span class="lbl">Sending to</span><span class="val" id="destName">Choose a play</span></span>
-    <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
-  </button>
-</div>
-
 <main>
-  <section aria-labelledby="connectionsTitle">
-    <h2 id="connectionsTitle">Connections</h2>
-    <p class="small">Recommended: import your full connections archive.</p>
-    <div class="card">
-      <ol class="small">
-        <li><a href="https://www.linkedin.com/mypreferences/d/download-my-data" target="_blank" rel="noopener noreferrer">Request your full connections export</a> in Settings &amp; Privacy → Data privacy → Download your data. Select “Download larger data archive, including connections,” then Request archive.</li>
-        <li>Wait for the download email, download the archive, and extract <b>Connections.csv</b>.</li>
-        <li>Choose only that CSV below. The full ZIP, messages, email addresses, and other archive files are not uploaded.</li>
-      </ol>
-      <label class="small" for="connectionsOwner">Your profile URL (owner of this export)</label>
-      <input id="connectionsOwner" type="url" placeholder="https://www.linkedin.com/in/your-profile" style="width:100%;box-sizing:border-box">
-      <label class="small" for="connectionsFile">Connections.csv</label>
-      <input id="connectionsFile" type="file" accept=".csv,text/csv" style="max-width:100%">
-      <p class="small" id="connectionsPreview" role="status">Preview locally before sending. No account crawling or session-cookie access.</p>
-      <ul class="small" id="connectionsSamples"></ul>
-      <label class="small"><input id="connectionsConfirm" type="checkbox"> This is my full connections export, and I approve sending the previewed records to the destination shown below.</label>
-      <p id="connectionsDestination" class="small"></p>
-      <div class="btn-row"><button id="connectionsStart" class="btn" type="button" disabled>Import connections</button><button id="connectionsStop" class="btn" type="button" hidden>Stop</button></div>
-      <p id="connectionsStatus" class="muted small" role="status" aria-live="polite">Nothing is sent until you confirm and click Import.</p>
-    </div>
-    <details id="connectionsLiveOptions" class="card">
-      <summary>Optional: sync connections from your signed-in account</summary>
-      <p class="small">This uses an unsupported private API and can lead to account restrictions. Archive import above is recommended. No scheduled sync or automatic retry; errors, challenges, or account changes stop collection.</p>
-      <label class="small" for="connectionsLimit">Maximum connections to read (1–2,000)</label>
-      <input id="connectionsLimit" type="number" min="1" max="2000" value="100">
-      <label class="small" style="display:block;margin:8px 0"><input id="connectionsLiveConfirm" type="checkbox"> I understand the account risk and approve this live sync to the selected destination.</label>
-      <button id="connectionsLiveStart" class="btn" type="button" disabled>Sync my connections</button>
-    </details>
-  </section>
-  <!-- First run: sign in, then pick a play -->
-  <section id="signIn" hidden>
-    <div class="card">
-      <div class="title" style="font-weight:600">Sign in to Deepline to start pushing people.</div>
-      <div class="muted small" style="margin-top:4px">Connect once and approve this browser in Deepline (a key you can revoke from your device list), or just follow your Deepline sign-in. Nothing to paste.</div>
-      <div class="btn-row"><button id="connectBtn" class="btn primary" type="button">Connect Deepline</button><button id="signInBtn" class="btn" type="button">Sign in to Deepline</button><button id="signInSettings" class="btn" type="button">Use a webhook instead</button></div>
-      <div id="signInNote" class="note" hidden></div>
-    </div>
-  </section>
-  <section id="firstRun" hidden>
-    <div class="card">
-      <div class="title" style="font-weight:600">Pick the play your people go to.</div>
-      <div class="muted small" style="margin-top:4px">Ask your RevOps admin which one your team uses.</div>
-      <div class="btn-row"><button id="firstRunPick" class="btn primary" type="button">Choose a play</button><button id="firstRunSettings" class="btn" type="button">Settings</button></div>
-    </div>
-  </section>
+  <div id="error" class="err" role="alert" hidden></div>
 
-  <!-- Nothing useful open -->
-  <section id="pageNone">
-    <div class="teach">Open a <b>LinkedIn profile</b>, a <b>Sales Navigator search</b>, a <b>lead list</b> or a <b>lead page</b>. This panel follows the tab you are on.</div>
-  </section>
-
-  <!-- Profile / lead page -->
-  <section id="pageSingle" hidden>
-    <h2>This person</h2>
-    <div class="card hero">
-      <div class="person">
-        <span class="avatar" id="leadAvatar"></span>
-        <span class="who"><span class="name" id="leadName"></span><span class="meta" id="leadMeta"></span></span>
+  <section id="connect" hidden>
+    <div class="card">
+      <div class="title">Connect your Deepline workspace</div>
+      <p class="small muted">Your plays run in Deepline and results are saved to your table there. This panel reads only the page address and title.</p>
+      <div class="stack">
+        <button id="signIn" class="btn primary">Sign in to Deepline</button>
+        <button id="approve" class="btn">Connect with device approval</button>
       </div>
-      <div id="leadNote" class="note info" hidden></div>
-      <div class="btn-row"><button id="addCurrent" class="btn" type="button">Add to selection (push later)</button></div>
+      <p id="claimNote" class="small muted" hidden>Approve this browser in the Deepline tab. This panel connects as soon as you do.</p>
     </div>
   </section>
 
-  <!-- List page -->
-  <section id="pageList" hidden>
-    <h2><span id="listTitle">Selected people</span> <span class="actions"><button id="addAll" class="link quiet" type="button">Add all on this page</button><button id="clearAll" class="link quiet" type="button">Clear selection</button></span></h2>
-    <div id="listTeach" class="teach">Select people with the <kbd>+</kbd> button on each row, or use LinkedIn’s own checkboxes and choose <b>Add LinkedIn selections</b>. Your picks stay while you move between pages.</div>
-    <ul id="people" class="people"></ul>
-    <div class="btn-row" id="listBtns"><button id="addSelected" class="btn" type="button">Add LinkedIn selections</button></div>
-    <div id="pageNote" class="note" hidden></div>
-  </section>
-
-  <!-- Whole-search import -->
-  <section id="searchSection" hidden>
-    <h2>Search import</h2>
-    <div class="card import">
-      <div class="title" id="searchTitle">Import up to 100 people from this search</div>
-      <div class="muted small" id="searchBlurb">Deepline will fetch matching people in the background. You can keep working in LinkedIn.</div>
-      <div id="savedNote" class="note warn" hidden><b>This saved search is private.</b> Get a shareable link from Sales Navigator so Deepline can import it. <button id="getShare" class="link" type="button">Get shareable link</button></div>
-      <div id="shareOk" class="note ok" hidden>Shareable link ready. Start the import.</div>
-      <div class="row"><label class="small muted" for="searchLimit">Up to</label><input id="searchLimit" type="number" min="1" max="2500" value="100"><span class="small muted">people</span><span style="flex:1"></span><button id="sendSearch" class="btn primary" type="button">Start search import</button></div>
-      <div id="searchNote" class="note" hidden></div>
+  <section id="page" hidden>
+    <h2>This page</h2>
+    <div class="card">
+      <div id="pageKind" class="small muted"></div>
+      <div id="pageLabel" class="title"></div>
+      <ul id="pageRows" class="rows"></ul>
+      <div id="actions" class="stack"></div>
+      <div id="morePlays" hidden>
+        <input id="playFilter" type="search" placeholder="Find a play" aria-label="Find a play" style="margin-top:8px">
+      </div>
     </div>
   </section>
 
-  <!-- Recent -->
-  <section id="recentSection">
-    <h2>Recent <span class="actions"><button id="retry" class="link quiet" type="button" hidden>Retry failed</button><button id="openLog" class="link quiet" type="button">History</button></span></h2>
-    <ul id="recent" class="recent"></ul>
-    <div id="recentEmpty" class="teach">Nothing pushed yet.</div>
+  <section id="idle" hidden>
+    <div class="card small muted">Open a LinkedIn profile, company page, Sales Navigator lead, list or search, a Salesforce or HubSpot record, or any company website.</div>
+  </section>
+
+  <section id="table" hidden>
+    <h2><span>My table</span><button id="refresh" class="link">Refresh</button></h2>
+    <input id="filter" type="search" placeholder="Filter by name, email, play" aria-label="Filter my table">
+    <ul id="rows" class="rows" style="margin-top:6px"></ul>
+    <p id="empty" class="small muted" hidden>Results from plays you run here are saved to <code>assistant.records</code> in your workspace and listed here.</p>
   </section>
 </main>
-
-<div class="bar">
-  <button id="cta" class="cta" type="button" disabled>Pick people to push</button>
-  <div class="status" id="ctaStatus" role="status" aria-live="polite"></div>
-  <div class="sub"><span>Daily limit: <span id="sentToday">0</span> of <span id="capTotal">0</span> used</span><label title="Normally, people you already pushed stay skipped."><input id="force" type="checkbox"> Allow people already sent</label></div>
-</div>
-
-<!-- Destination picker sheet -->
-<div id="sheet" class="sheet" hidden role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
-  <div class="panel">
-    <div class="head"><span id="sheetTitle">Send to</span><button id="sheetClose" class="icon-btn" type="button" aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
-    <div class="search"><input id="sheetSearch" type="search" placeholder="Search plays…" autocomplete="off"></div>
-    <ul id="sheetList"></ul>
-    <div id="sheetPlays" hidden>
-      <div class="muted small" style="padding:4px 16px 6px">Your Deepline plays</div>
-      <ul id="sheetPlayList"></ul>
-    </div>
-    <div class="foot"><button id="sheetAdd" class="link" type="button">+ Add one of my Deepline plays</button> · <button id="sheetSettings" class="link quiet" type="button">Settings</button></div>
-  </div>
-</div>
-
+<footer>
+  <details class="small muted">
+    <summary>Settings</summary>
+    <label>Deepline URL <input id="baseUrl" type="url"></label>
+    <div class="stack"><button id="disconnect" class="btn">Disconnect</button></div>
+  </details>
+</footer>
 <script type="module" src="sidepanel.js"></script>
 </body>
 </html>

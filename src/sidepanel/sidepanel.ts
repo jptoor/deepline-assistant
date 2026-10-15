@@ -1,699 +1,320 @@
-import { ARCHIVE_MAX_BYTES, parseConnectionsCsv, type ConnectionSyncState } from "../shared/connections";
-/** Side panel for reps: what you are looking at, where it goes, one button.
- *  All state comes from the worker; page actions are relayed to the content
- *  script of the active tab. Vocabulary: push, selected, search import. */
-import { summarizePlayInput, type PlaySummary } from "../shared/deepline";
-import type { AuthResponse, BackgroundToPanel, BasketResponse, CaptureResponse, ListPlaysResponse, PageContext, SearchCaptureResponse, StateResponse } from "../shared/messages";
-import type { Destination, LeadRecord, QueueItem } from "../shared/types";
+/** Side panel. The only page input is the active tab's URL and title; plays
+ *  do the work in Deepline and their results live in the rep's table
+ *  (assistant.records). Runs in flight are tracked by that table, so closing
+ *  the panel loses nothing: the next open reconciles every pending row. */
+import { fetchSession, keySession, pollClaim, registerDevice, signInUrl, isDeeplineTab, type Connection, type PendingClaim } from "../background/auth";
+import { KIND_LABEL, pageContext, type PageContext } from "../shared/context";
+import { AuthError, DEFAULT_BASE_URL, TERMINAL, inputFor, listPlays, normalizeBaseUrl, pollRun, query, startRun, type Credential, type PlaySummary } from "../shared/deepline";
+import { SETUP_SQL, finishSql, listSql, startSql, type RecordRow } from "../shared/records";
+
+declare const __EXTENSION_VERSION__: string;
+const VERSION = typeof __EXTENSION_VERSION__ === "string" ? __EXTENSION_VERSION__ : "dev";
+const POLL_MS = 3000;
+const SHOWN_PLAYS = 4;
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
-const msg = <T,>(m: unknown): Promise<T> => chrome.runtime.sendMessage(m) as Promise<T>;
-
-let state: StateResponse | null = null;
-let auth: AuthResponse | null = null;
-let basket: BasketResponse = { items: [], count: 0, pages: 0 };
-let context: PageContext | null = null;
-let activeTabId: number | null = null;
-/** When a search import was last started, so the pinned bar can say so. */
-let searchImportStartedAt = 0;
-let searchImportDest = "";
-
-/* ---------- helpers ---------- */
-
-function note(el: HTMLElement, text: string | null, kind: "ok" | "err" | "warn" | "info" = "info") {
-  if (!text) {
-    el.hidden = true;
-    return;
+function h(tag: string, props: Record<string, unknown> = {}, ...kids: (Node | string | null)[]): HTMLElement {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(props)) {
+    if (k === "on") for (const [ev, fn] of Object.entries(v as Record<string, EventListener>)) el.addEventListener(ev, fn);
+    else if (k === "class") el.className = String(v);
+    else if (v != null && v !== false) el.setAttribute(k, String(v));
   }
-  el.hidden = false;
-  el.textContent = text;
-  el.className = `note ${kind}`;
-}
-function ctaStatus(text: string, kind: "ok" | "err" | "warn" | "" = "") {
-  const el = $("ctaStatus");
-  el.textContent = text;
-  el.className = `status${kind ? " " + kind : ""}`;
-}
-function initials(name: string): string {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0]?.toUpperCase() ?? "")
-    .join("");
-}
-function avatar(lead: LeadRecord): HTMLElement {
-  const a = document.createElement("span");
-  a.className = "avatar";
-  // Initials first; the photo replaces them only once it has actually loaded.
-  a.textContent = initials(lead.full_name);
-  if (lead.profile_image_url) {
-    const img = document.createElement("img");
-    img.alt = "";
-    img.referrerPolicy = "no-referrer";
-    img.hidden = true;
-    img.addEventListener("load", () => {
-      a.textContent = "";
-      img.hidden = false;
-      a.appendChild(img);
-    });
-    img.src = lead.profile_image_url;
-  }
-  return a;
-}
-function whyNot(r: CaptureResponse): string {
-  switch (r.rejectedReason) {
-    case "no_destination":
-      return "Choose where to send first.";
-    case "invalid_url":
-      return "That play or webhook is not set up completely. Open Settings.";
-    case "daily_cap":
-      return `You hit today’s limit (${r.remainingToday} left). You can raise it in Settings.`;
-    case "nothing_to_send":
-      return "Nothing to push.";
-    case "invalid_message":
-      return "This is not a page the extension can read.";
-    case "unsupported_by_play":
-      return r.detail ?? "This play does not take people.";
-    case "signed_out":
-      return "Sign in to Deepline first.";
-    default:
-      return "Could not push.";
-  }
-}
-function pluralPeople(n: number): string {
-  return n === 1 ? "1 person" : `${n} people`;
-}
-function activeDest(): Destination | null {
-  return state?.settings.destinations.find((d) => d.id === state?.settings.activeDestinationId) ?? null;
-}
-function destLabel(d: Destination | null): string {
-  return d ? d.name : "somewhere";
+  for (const kid of kids) if (kid != null) el.append(kid);
+  return el;
 }
 
-/* ---------- destination chip + picker ---------- */
-
-function renderDest() {
-  const d = activeDest();
-  const btn = $("destBtn");
-  btn.classList.toggle("empty", !d);
-  $("destName").textContent = d ? d.name : "Choose a play";
-  const none = !!state && state.settings.destinations.length === 0;
-  const signedIn = !!auth?.signedIn;
-  $("signIn").hidden = !none || signedIn;
-  $("firstRun").hidden = !none || !signedIn;
-  $("account").textContent = signedIn ? `· ${auth?.email ?? auth?.name ?? "signed in"}` : "for LinkedIn";
+interface Stored {
+  baseUrl?: string;
+  connection?: Connection | null;
+  claim?: PendingClaim | null;
+  tableReady?: string;
+  pinned?: string[];
 }
+const store = {
+  get: () => chrome.storage.local.get(null) as Promise<Stored>,
+  set: (v: Partial<Stored>) => chrome.storage.local.set(v)
+};
 
-/* ---------- Deepline plays from the rep's own sign-in ---------- */
+const state = {
+  baseUrl: DEFAULT_BASE_URL,
+  cred: null as Credential | null,
+  owner: null as string | null,
+  plays: [] as PlaySummary[],
+  pinned: [] as string[],
+  ctx: pageContext(undefined),
+  rows: [] as RecordRow[],
+  busy: new Set<string>(),
+  polling: new Set<string>()
+};
 
-let sheetPlays: PlaySummary[] | null = null;
-async function renderSheetPlays(force = false) {
-  const box = $("sheetPlays");
-  if (!auth?.signedIn) {
-    box.hidden = true;
-    return;
-  }
+function showError(e: unknown) {
+  const box = $("error");
+  if (!e) return void (box.hidden = true);
+  box.textContent = e instanceof Error ? e.message : String(e);
   box.hidden = false;
-  const ul = $("sheetPlayList");
-  const teach = (text: string) => {
-    ul.textContent = "";
-    const li = document.createElement("li");
-    li.className = "teach";
-    li.style.padding = "6px 8px";
-    li.textContent = text;
-    ul.appendChild(li);
-  };
-  if (!sheetPlays || force) {
-    teach("Loading your plays…");
-    const r = await msg<ListPlaysResponse>({ type: "LIST_PLAYS" });
-    if (!r.ok) {
-      sheetPlays = null;
-      teach(r.error?.includes("signed in") ? "Your Deepline sign-in expired. Sign in again." : `Could not load plays: ${r.error}`);
-      return;
+}
+
+const rowKey = (r: Pick<RecordRow, "entity_key" | "play_key">) => `${r.entity_key}\u0000${r.play_key}`;
+const playName = (key: string) => state.plays.find((p) => p.playKey === key)?.displayName ?? key.replace(/^prebuilt\//, "");
+function ago(iso: string): string {
+  const s = Math.max(0, (Date.now() - Date.parse(iso)) / 1000);
+  return s < 60 ? "just now" : s < 3600 ? `${Math.floor(s / 60)}m ago` : s < 86400 ? `${Math.floor(s / 3600)}h ago` : `${Math.floor(s / 86400)}d ago`;
+}
+
+/* ---------------------------------------------------------------- auth */
+
+async function connect(): Promise<void> {
+  const s = await store.get();
+  state.baseUrl = s.baseUrl ?? DEFAULT_BASE_URL;
+  state.pinned = s.pinned ?? [];
+  ($("baseUrl") as HTMLInputElement).value = state.baseUrl;
+  state.cred = null;
+  state.owner = null;
+  if (s.connection && s.connection.baseUrl === normalizeBaseUrl(state.baseUrl)) {
+    const k = await keySession(s.connection, VERSION);
+    if (k.revoked) await store.set({ connection: null });
+    else {
+      state.cred = { baseUrl: state.baseUrl, apiKey: s.connection.apiKey };
+      state.owner = k.email ?? k.userId;
     }
-    sheetPlays = r.plays;
   }
-  ul.textContent = "";
-  const q = sheetQuery.trim().toLowerCase();
-  const connected = new Set(state?.settings.destinations.map((d) => (d.kind === "deepline_play" ? d.playKey : "")) ?? []);
-  const items = sheetPlays.filter((p) => !connected.has(p.playKey) && (!q || p.displayName.toLowerCase().includes(q) || p.playKey.toLowerCase().includes(q))).sort((a, b) => (a.origin === b.origin ? a.displayName.localeCompare(b.displayName) : a.origin === "owned" ? -1 : 1));
-  if (!items.length) return teach(sheetPlays.length ? "All your plays are connected." : "No plays in this Deepline workspace yet.");
-  for (const p of items.slice(0, 50)) {
-    const li = document.createElement("li");
-    const pick = document.createElement("button");
-    pick.type = "button";
-    pick.className = "pick";
-    pick.setAttribute("data-lwe-play", p.playKey);
-    const t = document.createElement("span");
-    t.className = "t";
-    const n = document.createElement("span");
-    n.className = "n";
-    n.textContent = p.displayName;
-    const k = document.createElement("span");
-    k.className = "k";
-    k.textContent = `${p.origin === "prebuilt" ? "Deepline prebuilt · " : ""}${summarizePlayInput(p.input)}`;
-    t.append(n, k);
-    const kind = document.createElement("span");
-    kind.className = "kind";
-    kind.textContent = "Add";
-    pick.append(t, kind);
-    pick.addEventListener("click", async () => {
-      state = await msg<StateResponse>({ type: "ADD_PLAY_DESTINATION", playKey: p.playKey, playName: p.displayName, inputSchema: p.inputSchema, activate: true });
-      closeSheet();
-      renderAll();
-      ctaStatus(`Connected ${p.displayName}.`, "ok");
-    });
-    li.append(pick);
-    ul.appendChild(li);
+  if (!state.cred) {
+    const session = await fetchSession(state.baseUrl);
+    if (session.signedIn) {
+      state.cred = { baseUrl: state.baseUrl, apiKey: null };
+      state.owner = session.email ?? session.userId;
+    }
   }
+  $("who").textContent = state.owner ?? "";
+  if (!state.cred) return void (s.claim ? waitForClaim(s.claim) : undefined);
+  await Promise.all([ensureTable(s), loadPlays()]);
+  await loadRows();
 }
 
-async function refreshAuth(refresh = false) {
-  auth = await msg<AuthResponse>({ type: "GET_AUTH", refresh });
-  renderDest();
+let claiming = false;
+async function waitForClaim(claim: PendingClaim) {
+  if (claiming) return;
+  claiming = true;
+  $("claimNote").hidden = false;
+  while (Date.now() < claim.expiresAt) {
+    const r = await pollClaim(claim, VERSION);
+    if (r.state === "claimed") {
+      await store.set({ connection: r.connection, claim: null });
+      $("claimNote").hidden = true;
+      claiming = false;
+      return void boot();
+    }
+    if (r.state !== "pending") break;
+    await new Promise((res) => setTimeout(res, POLL_MS));
+  }
+  await store.set({ claim: null });
+  $("claimNote").hidden = true;
+  claiming = false;
 }
 
-let sheetQuery = "";
-function renderSheet() {
-  if (!state) return;
-  const ul = $("sheetList");
-  ul.textContent = "";
-  const q = sheetQuery.trim().toLowerCase();
-  const items = state.settings.destinations
-    .filter((d) => !q || d.name.toLowerCase().includes(q) || (d.kind === "deepline_play" && d.playKey.toLowerCase().includes(q)))
-    .sort((a, b) => Number(b.favorite) - Number(a.favorite) || a.name.localeCompare(b.name));
-  if (!items.length) {
-    const li = document.createElement("li");
-    li.className = "teach";
-    li.style.padding = "10px 8px";
-    li.textContent = state.settings.destinations.length ? "No matches." : "Nothing connected yet. Add a Deepline play (or a webhook) below.";
-    ul.appendChild(li);
-  }
-  for (const d of items) {
-    const li = document.createElement("li");
-    if (d.id === state.settings.activeDestinationId) li.className = "current";
-    const pick = document.createElement("button");
-    pick.type = "button";
-    pick.className = "pick";
-    pick.setAttribute("data-lwe-dest", d.id);
-    const t = document.createElement("span");
-    t.className = "t";
-    const n = document.createElement("span");
-    n.className = "n";
-    n.textContent = d.name;
-    const k = document.createElement("span");
-    k.className = "k";
-    k.textContent = d.kind === "deepline_play" ? d.playKey : safeHost(d.url);
-    t.append(n, k);
-    const kind = document.createElement("span");
-    kind.className = "kind";
-    kind.textContent = d.kind === "deepline_play" ? "Play" : "Webhook";
-    pick.append(t, kind);
-    pick.addEventListener("click", async () => {
-      state = await msg<StateResponse>({ type: "SET_ACTIVE_DESTINATION", destinationId: d.id });
-      closeSheet();
-      renderAll();
-    });
-    const star = document.createElement("button");
-    star.type = "button";
-    star.className = "star";
-    star.setAttribute("aria-pressed", d.favorite ? "true" : "false");
-    star.setAttribute("aria-label", d.favorite ? `Unpin ${d.name}` : `Pin ${d.name}`);
-    star.textContent = d.favorite ? "★" : "☆";
-    star.addEventListener("click", async (e) => {
-      e.stopPropagation();
-      state = await msg<StateResponse>({ type: "TOGGLE_FAVORITE", destinationId: d.id });
-      renderSheet();
-    });
-    li.append(pick, star);
-    ul.appendChild(li);
-  }
+/** Create the rep's table once per workspace + URL. Idempotent DDL. */
+async function ensureTable(s: Stored) {
+  const marker = `${state.baseUrl}|${state.owner}`;
+  if (s.tableReady === marker) return;
+  for (const sql of SETUP_SQL) await query(state.cred!, sql);
+  await store.set({ tableReady: marker });
 }
-function safeHost(u: string): string {
+
+async function loadPlays() {
+  state.plays = await listPlays(state.cred!);
+}
+
+/* ---------------------------------------------------------------- table */
+
+async function loadRows() {
+  if (!state.cred || !state.owner) return;
+  state.rows = await query<RecordRow>(state.cred, listSql(state.owner, 200), fetch, 200);
+  render();
+  for (const r of state.rows) if (!TERMINAL.has(r.status) && r.run_id) void track(r);
+}
+
+/** Poll one pending row's run until it is terminal, then write the result. */
+async function track(row: Pick<RecordRow, "owner" | "entity_key" | "play_key" | "run_id">) {
+  const key = rowKey(row);
+  if (state.polling.has(key) || !row.run_id) return;
+  state.polling.add(key);
   try {
-    return new URL(u).host;
-  } catch {
-    return u;
-  }
-}
-function openSheet() {
-  renderSheet();
-  void renderSheetPlays();
-  $("sheet").hidden = false;
-  $<HTMLInputElement>("sheetSearch").focus();
-}
-function closeSheet() {
-  if ($("sheet").hidden) return;
-  $("sheet").hidden = true;
-  $("destBtn").focus();
-}
-/** Keep keyboard focus inside the open sheet. */
-$("sheet").addEventListener("keydown", (e) => {
-  if (e.key !== "Tab") return;
-  const focusables = Array.from($("sheet").querySelectorAll<HTMLElement>("button, input")).filter((el) => !el.hidden && el.offsetParent !== null);
-  if (!focusables.length) return;
-  const first = focusables[0];
-  const last = focusables[focusables.length - 1];
-  if (e.shiftKey && document.activeElement === first) {
-    e.preventDefault();
-    last.focus();
-  } else if (!e.shiftKey && document.activeElement === last) {
-    e.preventDefault();
-    first.focus();
-  }
-});
-
-/* ---------- page ---------- */
-
-function renderPage() {
-  const ctx = context;
-  const single = !!ctx && (ctx.pageType === "profile" || ctx.pageType === "salesnav_lead");
-  const list = !!ctx && (ctx.pageType === "salesnav_search" || ctx.pageType === "salesnav_list" || ctx.pageType === "people_search");
-  $("pageNone").hidden = single || list;
-  $("pageSingle").hidden = !single;
-  $("pageList").hidden = !list;
-  $("searchSection").hidden = !(list && ctx?.pageType === "salesnav_search");
-  if (single && ctx) {
-    const lead = ctx.lead;
-    const av = $("leadAvatar");
-    av.replaceWith(lead ? Object.assign(avatar(lead), { id: "leadAvatar" }) : Object.assign(document.createElement("span"), { id: "leadAvatar", className: "avatar" }));
-    $("leadName").textContent = lead?.full_name ?? "Reading the page…";
-    $("leadMeta").textContent = lead ? [lead.title, lead.company_name].filter(Boolean).join(" · ") + (lead.location ? ` · ${lead.location}` : "") : "";
-    $<HTMLButtonElement>("addCurrent").disabled = !lead;
-    $("addCurrent").textContent = lead ? `Add ${lead.first_name ?? lead.full_name} to selection (push later)` : "Add to selection (push later)";
-  }
-  if (list && ctx) {
-    const onPage = ctx.selectedOnPage;
-    $("listTitle").textContent = basket.count ? `${basket.count} selected${basket.pages > 1 ? ` across ${basket.pages} pages` : ""}` : "Selected people";
-    $("addAll").textContent = ctx.rowsOnPage && onPage >= ctx.rowsOnPage ? `Remove all ${ctx.rowsOnPage} on this page` : `Add all${ctx.rowsOnPage ? ` ${ctx.rowsOnPage}` : ""} on this page`;
-    $("clearAll").hidden = basket.count === 0;
-    $("listTeach").hidden = basket.count > 0;
-    const isSearch = ctx.pageType === "salesnav_search";
-    if (isSearch) {
-      const d = activeDest();
-      const can = !!d && (d.kind === "webhook" || d.input.acceptsSearch);
-      const lim = Number($<HTMLInputElement>("searchLimit").value) || state?.settings.searchDefaultLimit || 100;
-      $("searchTitle").textContent = ctx.searchName ? `Import up to ${lim} people from “${ctx.searchName.slice(0, 60)}${ctx.searchName.length > 60 ? "…" : ""}”` : `Import up to ${lim} people from this search`;
-      $("searchBlurb").textContent = d ? `${d.name} will fetch matching people in the background. You can keep working in LinkedIn.` : "Choose where to send first.";
-      $<HTMLButtonElement>("sendSearch").disabled = !can || (!!ctx.savedSearchId && !ctx.shareUrl);
-      $("savedNote").hidden = !ctx.savedSearchId || !!ctx.shareUrl;
-      $("shareOk").hidden = !ctx.shareUrl;
-      // The capability warning is derived state; a transient result message
-      // ("Importing up to 40 people…") must survive re-renders.
-      const sn = $("searchNote");
-      if (d && !can) {
-        note(sn, `${d.name} can receive individual people, not whole searches. Choose a search-ready destination, or select people one by one.`, "warn");
-        sn.dataset.derived = "1";
-      } else if (sn.dataset.derived) {
-        note(sn, null);
-        delete sn.dataset.derived;
+    for (;;) {
+      const run = await pollRun(state.cred!, row.run_id);
+      if (TERMINAL.has(run.status)) {
+        await query(state.cred!, finishSql(row, run.status, run.result, run.error));
+        break;
       }
+      await new Promise((res) => setTimeout(res, POLL_MS));
     }
+  } catch (e) {
+    showError(e);
+  } finally {
+    state.polling.delete(key);
+    await loadRows();
   }
-  renderCta();
 }
 
-function renderPeople() {
-  const ul = $("people");
-  ul.textContent = "";
-  for (const it of basket.items.slice().reverse()) {
-    const li = document.createElement("li");
-    li.className = "person";
-    li.setAttribute("data-lwe-selected", it.key);
-    const who = document.createElement("span");
-    who.className = "who";
-    const name = document.createElement("span");
-    name.className = "name";
-    name.textContent = it.lead.full_name;
-    const meta = document.createElement("span");
-    meta.className = "meta";
-    meta.textContent = [it.lead.title, it.lead.company_name].filter(Boolean).join(" · ") || "LinkedIn";
-    who.append(name, meta);
-    const x = document.createElement("button");
-    x.type = "button";
-    x.className = "icon-btn x";
-    x.setAttribute("aria-label", `Remove ${it.lead.full_name}`);
-    x.textContent = "×";
-    x.addEventListener("click", async () => {
-      basket = await msg<BasketResponse>({ type: "BASKET_REMOVE", keys: [it.key] });
-      renderAll();
+/* ---------------------------------------------------------------- runs */
+
+async function run(play: PlaySummary) {
+  const ctx = state.ctx;
+  if (!state.cred || !state.owner || !ctx.entity_key) return;
+  const { input } = inputFor(play, ctx);
+  const key = rowKey({ entity_key: ctx.entity_key, play_key: play.playKey });
+  if (state.busy.has(key)) return;
+  state.busy.add(key);
+  render();
+  const row = { owner: state.owner, entity_key: ctx.entity_key, play_key: play.playKey };
+  try {
+    // Intent first, so a crash between here and the run leaves a visible row.
+    await query(state.cred, startSql(state.owner, ctx, play.playKey, null, "queued"));
+    const started = await startRun(state.cred, play.playKey, input).catch(async (e) => {
+      await query(state.cred!, finishSql(row, "failed", null, e instanceof Error ? e.message : String(e)));
+      throw e;
     });
-    li.append(avatar(it.lead), who, x);
-    ul.appendChild(li);
+    await query(state.cred, startSql(state.owner, ctx, play.playKey, started.runId, started.status));
+    if (TERMINAL.has(started.status)) await query(state.cred, finishSql(row, started.status, started.result, started.error));
+    else void track({ ...row, run_id: started.runId });
+    showError(null);
+  } catch (e) {
+    showError(e);
+  } finally {
+    state.busy.delete(key);
+    await loadRows();
   }
 }
 
-/** The pinned button always says exactly what will happen. */
-function renderCta() {
-  const cta = $<HTMLButtonElement>("cta");
-  const d = activeDest();
-  const single = context?.pageType === "profile" || context?.pageType === "salesnav_lead";
-  const importing = Date.now() - searchImportStartedAt < 20_000;
-  if (!d) {
-    cta.textContent = "Choose where to send";
-    cta.disabled = false;
-    cta.dataset.mode = "choose";
-  } else if (basket.count === 0 && !(single && context?.lead) && importing) {
-    cta.textContent = `Search import started for ${searchImportDest || destLabel(d)}`;
-    cta.disabled = true;
-    cta.dataset.mode = "none";
-  } else if (basket.count > 0) {
-    cta.textContent = `Push ${pluralPeople(basket.count)} to ${destLabel(d)}`;
-    cta.disabled = false;
-    cta.dataset.mode = "basket";
-  } else if (single && context?.lead) {
-    cta.textContent = `Push ${context.lead.first_name ?? context.lead.full_name} to ${destLabel(d)}`;
-    cta.disabled = false;
-    cta.dataset.mode = "current";
-  } else {
-    cta.textContent = single ? "Reading the page…" : "Pick people to push";
-    cta.disabled = true;
-    cta.dataset.mode = "none";
-  }
-  if (state) {
-    $("sentToday").textContent = String(state.sentToday);
-    $("capTotal").textContent = String(state.settings.dailyCap);
-  }
+/* ---------------------------------------------------------------- render */
+
+function rowItem(r: RecordRow, showEntity: boolean): HTMLElement {
+  const copy = (v: string) => h("button", { class: "val", title: "Copy", on: { click: () => void navigator.clipboard.writeText(v) } }, v);
+  return h(
+    "li",
+    { class: "row" },
+    h(
+      "div",
+      { class: "top" },
+      showEntity ? h("button", { class: "name", title: r.url ?? "", on: { click: () => r.url && void chrome.tabs.update({ url: r.url }) } }, r.label ?? r.entity_key) : h("span", {}, playName(r.play_key)),
+      h("span", { class: `chip ${r.status}` }, r.status)
+    ),
+    showEntity ? h("span", { class: "small muted" }, `${playName(r.play_key)} · ${ago(r.updated_at)}`) : h("span", { class: "small muted" }, ago(r.updated_at)),
+    r.email ? copy(r.email) : null,
+    r.phone ? copy(r.phone) : null,
+    r.error ? h("span", { class: "err" }, r.error) : null
+  );
 }
 
-async function pageAction(action: "add_selected" | "add_all" | "clear_page" | "share_search" | "send_current" | "refresh"): Promise<PageContext | null> {
-  if (activeTabId == null) return null;
+function renderActions() {
+  const ctx = state.ctx;
+  const filter = ($("playFilter") as HTMLInputElement).value.trim().toLowerCase();
+  const usable = state.plays
+    .map((p) => ({ p, ...inputFor(p, ctx) }))
+    .filter((x) => x.missing.length === 0 && Object.keys(x.input).length > 0)
+    .sort((a, b) => Number(state.pinned.includes(b.p.playKey)) - Number(state.pinned.includes(a.p.playKey)));
+  const shown = filter ? usable.filter((x) => `${x.p.displayName} ${x.p.playKey}`.toLowerCase().includes(filter)) : usable.slice(0, SHOWN_PLAYS);
+  $("morePlays").hidden = usable.length <= SHOWN_PLAYS;
+  const done = new Map(state.rows.filter((r) => r.entity_key === ctx.entity_key).map((r) => [r.play_key, r]));
+  $("actions").replaceChildren(
+    ...shown.map(({ p }, i) => {
+      const prior = done.get(p.playKey);
+      const busy = state.busy.has(rowKey({ entity_key: ctx.entity_key!, play_key: p.playKey })) || (prior && !TERMINAL.has(prior.status));
+      const pinned = state.pinned.includes(p.playKey);
+      return h(
+        "div",
+        { style: "display:flex;gap:6px" },
+        h("button", { class: `btn${i === 0 && !filter ? " primary" : ""}`, disabled: busy, title: p.description ?? p.playKey, on: { click: () => void run(p) } }, h("span", {}, busy ? `Running ${p.displayName}…` : p.displayName), h("span", { class: "why" }, prior?.status === "completed" ? "Run again" : p.origin === "prebuilt" ? "Deepline" : "Your play")),
+        h("button", { class: "link", "aria-pressed": pinned, title: pinned ? "Unpin" : "Pin to top", on: { click: () => void togglePin(p.playKey) } }, pinned ? "★" : "☆")
+      );
+    })
+  );
+  if (!usable.length) $("actions").replaceChildren(h("p", { class: "small muted" }, "No play in this workspace accepts this page. Publish a play whose input declares one of: linkedin_url, company_linkedin_url, search_url, domain, crm_id, or context."));
+}
+
+async function togglePin(key: string) {
+  state.pinned = state.pinned.includes(key) ? state.pinned.filter((k) => k !== key) : [key, ...state.pinned];
+  await store.set({ pinned: state.pinned });
+  render();
+}
+
+function render() {
+  const signedIn = !!state.cred;
+  const ctx = state.ctx;
+  $("connect").hidden = signedIn;
+  $("page").hidden = !signedIn || !ctx.entity_key;
+  $("idle").hidden = !signedIn || !!ctx.entity_key;
+  $("table").hidden = !signedIn;
+  if (!signedIn) return;
+  if (ctx.entity_key) {
+    $("pageKind").textContent = KIND_LABEL[ctx.kind];
+    $("pageLabel").textContent = ctx.label;
+    $("pageRows").replaceChildren(...state.rows.filter((r) => r.entity_key === ctx.entity_key).map((r) => rowItem(r, false)));
+    renderActions();
+  }
+  const q = ($("filter") as HTMLInputElement).value.trim().toLowerCase();
+  const rows = q ? state.rows.filter((r) => [r.label, r.email, r.phone, r.play_key, r.entity_key].some((v) => v?.toLowerCase().includes(q))) : state.rows;
+  $("rows").replaceChildren(...rows.map((r) => rowItem(r, true)));
+  $("empty").hidden = state.rows.length > 0;
+}
+
+/* ---------------------------------------------------------------- tabs */
+
+async function followTab() {
+  const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+  state.ctx = pageContext(tab?.url, tab?.title ?? "");
+  render();
+}
+
+chrome.tabs.onActivated.addListener(() => void followTab());
+chrome.tabs.onUpdated.addListener((_id, info, tab) => {
+  if (!tab.active) return;
+  if (info.url || info.title) void followTab();
+  // Signing in on Deepline in another tab connects the panel.
+  if (info.status === "complete" && !state.cred && isDeeplineTab(tab.url, state.baseUrl)) void boot();
+});
+
+/* ---------------------------------------------------------------- wiring */
+
+$("signIn").addEventListener("click", () => void chrome.tabs.create({ url: signInUrl(state.baseUrl) }));
+$("approve").addEventListener("click", async () => {
   try {
-    const ctx = (await chrome.tabs.sendMessage(activeTabId, { type: "PAGE_ACTION", action })) as PageContext | null;
-    if (ctx) context = { ...ctx, shareUrl: ctx.shareUrl ?? context?.shareUrl ?? null };
-    return ctx;
-  } catch {
-    note($("pageNote"), "Reload the LinkedIn tab once so the extension can see it.", "warn");
-    return null;
-  }
-}
-
-/** Tests and debugging can pin the panel to a tab with `?tab=<id>`; otherwise
- *  it follows the active tab of the window it lives in. */
-const PINNED_TAB = Number(new URLSearchParams(location.search).get("tab")) || null;
-
-async function loadContext() {
-  const [tab] = PINNED_TAB ? [await chrome.tabs.get(PINNED_TAB).catch(() => undefined)] : await chrome.tabs.query({ active: true, currentWindow: true });
-  activeTabId = tab?.id ?? null;
-  context = activeTabId != null ? await msg<PageContext | null>({ type: "GET_PAGE_CONTEXT", tabId: activeTabId }) : null;
-  renderPage();
-}
-
-/* ---------- recent ---------- */
-
-function chipFor(item: QueueItem): { cls: string; text: string } {
-  if (item.status === "sent") return { cls: "sent", text: item.destinationKind === "deepline_play" ? "Running" : "Sent" };
-  if (item.status === "failed") return { cls: "failed", text: "Failed" };
-  if (item.status === "sending") return { cls: "sending", text: "Sending" };
-  return item.attempts > 0 ? { cls: "retry", text: "Retrying" } : { cls: "pending", text: "Queued" };
-}
-function ago(t: number): string {
-  const s = Math.max(0, Math.round((Date.now() - t) / 1000));
-  if (s < 60) return "now";
-  if (s < 3600) return `${Math.floor(s / 60)}m`;
-  if (s < 86400) return `${Math.floor(s / 3600)}h`;
-  return `${Math.floor(s / 86400)}d`;
-}
-function renderRecent() {
-  if (!state) return;
-  const ul = $("recent");
-  ul.textContent = "";
-  const items = state.queue.slice(0, 8);
-  $("recentEmpty").hidden = items.length > 0;
-  $("retry").hidden = !state.queue.some((i) => i.status === "failed");
-  for (const item of items) {
-    const li = document.createElement("li");
-    const what = document.createElement("span");
-    what.className = "what";
-    what.textContent = item.label || (item.leadCount > 1 ? pluralPeople(item.leadCount) : (item.leadUrls[0] ?? "").replace(/^https?:\/\/www\.linkedin\.com\//, ""));
-    what.title = item.lastError ? humanError(item.lastError) : item.runId ? `Run ${item.runId}` : "";
-    const chip = document.createElement("span");
-    const c = chipFor(item);
-    chip.className = `chip ${c.cls}`;
-    chip.textContent = c.text;
-    const when = document.createElement("span");
-    when.className = "when";
-    when.textContent = ago(item.createdAt);
-    li.append(what, chip, when);
-    ul.appendChild(li);
-  }
-}
-function humanError(e: string): string {
-  if (/failed to fetch|networkerror|timeout/i.test(e)) return "Could not reach the server. Check the address and your connection.";
-  if (/HTTP 401|HTTP 403/.test(e)) return "The API key or secret was rejected.";
-  if (/HTTP 4\d\d/.test(e)) return `The server rejected it: ${e}`;
-  return e;
-}
-
-/* ---------- state ---------- */
-
-async function refreshState() {
-  state = await msg<StateResponse>({ type: "GET_STATE" });
-  renderAll();
-  await refreshConnections();
-}
-async function refreshBasket(b?: BasketResponse) {
-  basket = b ?? (await msg<BasketResponse>({ type: "BASKET_GET" }));
-  renderPeople();
-  renderPage();
-}
-function renderAll() {
-  archiveControls();
-  renderDest();
-  renderPeople();
-  renderPage();
-  renderRecent();
-  if (state && !$<HTMLInputElement>("searchLimit").value) $<HTMLInputElement>("searchLimit").value = String(state.settings.searchDefaultLimit);
-}
-
-/* ---------- actions ---------- */
-
-async function pushBasket() {
-  const cta = $<HTMLButtonElement>("cta");
-  cta.disabled = true;
-  ctaStatus(`Pushing ${pluralPeople(basket.count)}…`);
-  const r = await msg<CaptureResponse & { sentFromPages: number }>({ type: "BASKET_SEND", force: $<HTMLInputElement>("force").checked });
-  if (r.ok && r.queued) ctaStatus(`${pluralPeople(r.queued)} on the way${r.skippedDuplicates.length ? `, ${r.skippedDuplicates.length} already pushed before` : ""}.`, "ok");
-  else if (r.ok) ctaStatus(`All ${r.skippedDuplicates.length} were pushed before. Tick “resend duplicates” to push again.`, "warn");
-  else ctaStatus(whyNot(r), "err");
-  await refreshBasket();
-  await refreshState();
-}
-async function pushCurrent() {
-  ctaStatus("Pushing…");
-  const ctx = await pageAction("send_current");
-  if (ctx) ctaStatus("On the way. See Recent below.", "ok");
-  await refreshState();
-}
-
-$("cta").addEventListener("click", () => {
-  const mode = $("cta").dataset.mode;
-  if (mode === "choose") return openSheet();
-  if (mode === "basket") return void pushBasket();
-  if (mode === "current") return void pushCurrent();
-});
-$("destBtn").addEventListener("click", openSheet);
-$("sheetClose").addEventListener("click", closeSheet);
-$("sheet").addEventListener("click", (e) => {
-  if (e.target === $("sheet")) closeSheet();
-});
-document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && !$("sheet").hidden) closeSheet();
-});
-$<HTMLInputElement>("sheetSearch").addEventListener("input", (e) => {
-  sheetQuery = (e.target as HTMLInputElement).value;
-  renderSheet();
-  void renderSheetPlays();
-});
-$("sheetAdd").addEventListener("click", async () => {
-  if (!auth?.signedIn) {
-    await msg({ type: "SIGN_IN" });
-    return;
-  }
-  await renderSheetPlays(true);
-  $("sheetPlays").scrollIntoView({ block: "nearest" });
-});
-$("sheetSettings").addEventListener("click", () => chrome.runtime.openOptionsPage());
-$("signInBtn").addEventListener("click", async () => {
-  await msg({ type: "SIGN_IN" });
-  note($("signInNote"), "A Deepline tab opened. Sign in there; this panel updates by itself.", "info");
-});
-$("connectBtn").addEventListener("click", async () => {
-  note($("signInNote"), "Asking Deepline for an approval link…", "info");
-  const r = await msg<{ ok: boolean; error: string | null }>({ type: "CONNECT" });
-  note($("signInNote"), r.ok ? "A Deepline tab opened. Approve this browser there; this panel updates by itself." : `Could not reach Deepline: ${r.error}`, r.ok ? "info" : "err");
-});
-$("signInSettings").addEventListener("click", () => chrome.runtime.openOptionsPage());
-$("firstRunPick").addEventListener("click", () => {
-  openSheet();
-  void renderSheetPlays(true);
-});
-$("options").addEventListener("click", () => chrome.runtime.openOptionsPage());
-$("firstRunSettings").addEventListener("click", () => chrome.runtime.openOptionsPage());
-$<HTMLInputElement>("searchLimit").addEventListener("input", renderPage);
-$("openLog").addEventListener("click", () => chrome.tabs.create({ url: chrome.runtime.getURL("options.html#log") }));
-
-$("addCurrent").addEventListener("click", async () => {
-  if (!context?.lead || !context.pageType) return;
-  const r = await msg<BasketResponse & { added: number }>({ type: "BASKET_ADD", leads: [context.lead], pageType: context.pageType, pageUrl: context.url, pageTitle: context.title });
-  note($("leadNote"), r.added ? `${context.lead.first_name ?? context.lead.full_name} added. ${pluralPeople(r.count)} ready to push.` : "Already selected.", r.added ? "ok" : "info");
-  await refreshBasket(r);
-});
-$("addSelected").addEventListener("click", async () => {
-  await pageAction("add_selected");
-  await refreshBasket();
-});
-$("addAll").addEventListener("click", async () => {
-  await pageAction("add_all");
-  await refreshBasket();
-});
-$("clearAll").addEventListener("click", async () => refreshBasket(await msg<BasketResponse>({ type: "BASKET_CLEAR" })));
-$("getShare").addEventListener("click", async () => {
-  note($("searchNote"), "Getting a shareable link from Sales Navigator…", "info");
-  await pageAction("share_search");
-  setTimeout(() => void loadContext(), 1200);
-});
-$("sendSearch").addEventListener("click", async () => {
-  if (!context?.pageType) return;
-  const limit = Math.max(1, Math.min(2500, Number($<HTMLInputElement>("searchLimit").value) || 100));
-  $<HTMLButtonElement>("sendSearch").disabled = true;
-  note($("searchNote"), "Starting the search import…", "info");
-  const r = await msg<SearchCaptureResponse>({ type: "SEARCH_CAPTURE", url: context.url, pageType: context.pageType, totalHint: context.totalHint, limit, searchName: context.searchName, savedSearchId: context.savedSearchId, force: $<HTMLInputElement>("force").checked });
-  $<HTMLButtonElement>("sendSearch").disabled = false;
-  if (r.ok && !r.duplicate) {
-    searchImportStartedAt = Date.now();
-    searchImportDest = destLabel(activeDest());
-    note($("searchNote"), `Search import started: up to ${limit} people are being fetched for ${searchImportDest}. You can keep working.`, "ok");
-    ctaStatus(`Search import started for ${searchImportDest}.`, "ok");
-    renderCta();
-    setTimeout(renderCta, 21_000);
-  } else if (r.ok) note($("searchNote"), "This search was already imported. Tick “Allow people already sent” to import it again.", "warn");
-  else if (r.rejectedReason === "saved_search_needs_share_link") note($("searchNote"), "This saved search is private. Get the shareable link first (above).", "warn");
-  else if (r.rejectedReason === "signed_out") note($("searchNote"), "Sign in to Deepline first.", "err");
-  else if (r.rejectedReason === "search_import_disabled") note($("searchNote"), "Search import is paused for this version of the extension.", "warn");
-  else note($("searchNote"), r.detail ?? whyNot({ ok: false, queued: 0, skippedDuplicates: [], rejectedReason: r.rejectedReason as CaptureResponse["rejectedReason"], remainingToday: state?.remainingToday ?? 0 }), "err");
-  await refreshState();
-});
-$("retry").addEventListener("click", async () => {
-  state = await msg<StateResponse>({ type: "RETRY_NOW" });
-  renderRecent();
-});
-
-chrome.runtime.onMessage.addListener((m: BackgroundToPanel) => {
-  if (m?.type === "CONTEXT_CHANGED" && m.tabId === activeTabId) {
-    context = m.context;
-    renderPage();
-  } else if (m?.type === "BASKET_CHANGED") void refreshBasket();
-  else if (m?.type === "STATE_CHANGED") void refreshState();
-  else if (m?.type === "AUTH_CHANGED") {
-    auth = m.auth;
-    sheetPlays = null;
-    renderDest();
-    if (auth.signedIn) note($("signInNote"), null);
-    else if (auth.error === "claim_expired") note($("signInNote"), "That approval link expired. Click Connect Deepline again.", "warn");
-    else if (auth.error === "claim_unauthorized") note($("signInNote"), "Deepline refused the approval. Click Connect Deepline to try again.", "err");
+    const claim = await registerDevice(state.baseUrl, VERSION);
+    await store.set({ claim });
+    await chrome.tabs.create({ url: claim.claimUrl });
+    void waitForClaim(claim);
+  } catch (e) {
+    showError(e);
   }
 });
-chrome.tabs.onActivated.addListener(() => {
-  if (!PINNED_TAB) void loadContext();
+$("disconnect").addEventListener("click", async () => {
+  await store.set({ connection: null, claim: null });
+  void boot();
 });
-chrome.tabs.onUpdated.addListener((id, info) => {
-  if (id === activeTabId && (info.status === "complete" || info.url)) void loadContext();
-});
-
-void refreshState();
-// A fresh check on every open: the rep may have signed in or out since.
-void refreshAuth(true);
-void loadContext();
-void refreshBasket();
-setInterval(() => void refreshState(), 5000);
-// Errors in the panel are reported through the worker, like worker errors.
-window.addEventListener("error", (e) => void msg({ type: "PANEL_ERROR", message: String(e.message), stack: e.error instanceof Error ? e.error.stack : null }).catch(() => undefined));
-window.addEventListener("unhandledrejection", (e) => void msg({ type: "PANEL_ERROR", message: e.reason instanceof Error ? e.reason.message : String(e.reason), stack: e.reason instanceof Error ? (e.reason.stack ?? null) : null }).catch(() => undefined));
-
-let archiveCsv: string | null = null;
-let archiveCount = 0;
-let archiveRunning = false;
-let archiveGeneration = 0;
-let previewDestination: string | null = null;
-function archiveControls() {
-  const dest = state?.settings.destinations.find(d => d.id === state?.settings.activeDestinationId);
-  if (previewDestination !== JSON.stringify(dest)) {
-    $<HTMLInputElement>("connectionsConfirm").checked = false;
-    $<HTMLInputElement>("connectionsLiveConfirm").checked = false;
-    previewDestination = JSON.stringify(dest) ?? null;
-  }
-  $("connectionsDestination").textContent = dest ? `Destination: ${dest.name} (${dest.kind === "webhook" ? safeHost(dest.url) : dest.playName}). ${archiveCount} records in the file; ${state?.remainingToday ?? 0} exports remain today. Plays may use credits.` : "Choose a destination before importing.";
-  $<HTMLButtonElement>("connectionsStart").disabled = archiveRunning || !archiveCsv || !archiveCount || !dest || !$<HTMLInputElement>("connectionsConfirm").checked;
-  $("connectionsStop").hidden = !archiveRunning;
-  $<HTMLButtonElement>("connectionsLiveStart").disabled = archiveRunning || !dest || !$<HTMLInputElement>("connectionsLiveConfirm").checked;
-  for (const id of ["connectionsLimit", "connectionsLiveConfirm"]) $<HTMLInputElement>(id).disabled = archiveRunning;
-  for (const id of ["connectionsOwner", "connectionsFile", "connectionsConfirm"]) $<HTMLInputElement>(id).disabled = archiveRunning;
-}
-async function previewArchive() {
-  const generation = ++archiveGeneration;
-  archiveCsv = null; archiveCount = 0;
-  $<HTMLInputElement>("connectionsConfirm").checked = false;
-  $("connectionsSamples").replaceChildren();
-  archiveControls();
-  const file = $<HTMLInputElement>("connectionsFile").files?.[0];
-  if (!file) return;
+$("baseUrl").addEventListener("change", async (e) => {
   try {
-    if (!/\.csv$/i.test(file.name) || file.size > ARCHIVE_MAX_BYTES) throw new Error("Choose only Connections.csv (up to 10 MB), not the ZIP archive.");
-    const csv = await file.text();
-    if (generation !== archiveGeneration) return;
-    const leads = parseConnectionsCsv(csv, $<HTMLInputElement>("connectionsOwner").value);
-    archiveCsv = csv; archiveCount = leads.length;
-    $("connectionsPreview").textContent = `${leads.length} connections ready. Sending: names, profile URLs, companies, positions, connection dates, and your declared profile URL. Email and all other columns are excluded. The file's completeness and ownership cannot be independently verified.`;
-    for (const lead of leads.slice(0, 5)) {
-      const item = document.createElement("li");
-      item.textContent = `${lead.full_name} · ${lead.company_name ?? "Unknown company"} · ${lead.connected_at}`;
-      $("connectionsSamples").appendChild(item);
-    }
-  } catch (error) { $("connectionsPreview").textContent = error instanceof Error ? error.message : "Could not read this export."; }
-  archiveControls();
-}
-async function refreshConnections() {
-  const sync = await msg<ConnectionSyncState>({ type: "CONNECTIONS_STATUS" });
-  archiveRunning = sync.status === "running";
-  archiveControls();
-  $("connectionsStatus").textContent = sync.status === "idle" ? "Nothing is sent until you confirm and click Import." : `${sync.status}: ${sync.message} (${sync.scanned}/${sync.total ?? 0} processed · ${sync.queued} queued · ${sync.skipped} already exported${sync.destination ? ` → ${sync.destination}` : ""})`;
-}
-$("connectionsFile").addEventListener("change", () => void previewArchive());
-$("connectionsOwner").addEventListener("input", () => void previewArchive());
-$("connectionsConfirm").addEventListener("change", archiveControls);
-$("connectionsStart").addEventListener("click", async () => {
-  const destinationId = state?.settings.activeDestinationId;
-  if (!archiveCsv || !destinationId || !$<HTMLInputElement>("connectionsConfirm").checked) return;
-  $<HTMLButtonElement>("connectionsStart").disabled = true;
-  try {
-    const result = await msg<ConnectionSyncState & { error?: string }>({ type: "CONNECTIONS_IMPORT", csv: archiveCsv, ownerUrl: $<HTMLInputElement>("connectionsOwner").value, confirmed: true, destinationId });
-    if (result.error) { $("connectionsStatus").textContent = result.error; return; }
-    $<HTMLInputElement>("connectionsConfirm").checked = false;
-    await refreshConnections();
-  } catch { $("connectionsStatus").textContent = "Import interrupted. Check Recent activity before retrying."; }
-  finally { archiveControls(); }
+    const baseUrl = normalizeBaseUrl((e.target as HTMLInputElement).value);
+    // A local Deepline needs its origin granted; production is in host_permissions.
+    if (!baseUrl.startsWith("https://code.deepline.com") && !(await chrome.permissions.request({ origins: [`${baseUrl}/*`] }))) throw new Error(`Allow access to ${baseUrl} to use it`);
+    await store.set({ baseUrl, connection: null });
+    void boot();
+  } catch (err) {
+    showError(err);
+  }
 });
-$("connectionsStop").addEventListener("click", async () => {
-  await msg({ type: "CONNECTIONS_STOP" });
-  $("connectionsStatus").textContent = "Stopping… Previously queued records will still be delivered.";
-});
+$("refresh").addEventListener("click", () => void loadRows().catch(showError));
+$("filter").addEventListener("input", render);
+$("playFilter").addEventListener("input", renderActions);
 
-$("connectionsLiveConfirm").addEventListener("change", archiveControls);
-$("connectionsLimit").addEventListener("input", () => {
-  $<HTMLInputElement>("connectionsLiveConfirm").checked = false;
-  archiveControls();
-});
-$("connectionsLiveStart").addEventListener("click", async () => {
-  const destinationId = state?.settings.activeDestinationId;
-  if (!destinationId || activeTabId == null || !$<HTMLInputElement>("connectionsLiveConfirm").checked) return;
-  const tabId = activeTabId;
-  $<HTMLInputElement>("connectionsLiveConfirm").checked = false;
-  archiveControls();
+async function boot() {
+  showError(null);
   try {
-    const result = await msg<ConnectionSyncState & { error?: string }>({ type: "CONNECTIONS_START", tabId, destinationId, limit: Number($<HTMLInputElement>("connectionsLimit").value), confirmed: true });
-    if (result.error) { $("connectionsStatus").textContent = result.error; return; }
-    await refreshConnections();
-  } catch { $("connectionsStatus").textContent = "Live sync interrupted. Check Recent activity before starting again."; }
-});
+    await followTab();
+    await connect();
+  } catch (e) {
+    if (e instanceof AuthError) state.cred = null;
+    showError(e);
+  }
+  render();
+}
+void boot();
