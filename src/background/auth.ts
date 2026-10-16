@@ -86,7 +86,7 @@ export interface PendingClaim {
   /** `claim_expires_at` from register (about 24 h); polling stops here. */
   expiresAt: number;
 }
-export const AGENT_NAME = "Chrome extension: Deepline for LinkedIn";
+export const AGENT_NAME = "Chrome extension: Deepline Assistant";
 const CLAIM_MAX_MS = 24 * 3600_000;
 
 function authInit(version: string, body: Record<string, unknown>, apiKey: string | null = null): RequestInit {

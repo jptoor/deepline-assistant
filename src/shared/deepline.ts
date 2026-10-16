@@ -1,171 +1,110 @@
-/** Deepline play destinations: discover callable plays through the API, infer
- *  how a play wants its input, and build `POST /api/v2/plays/run` requests.
- *  Everything here is pure except the two fetch helpers, which take a fetch
- *  implementation so they can be unit-tested. */
-import { flattenImport, flattenSource, toDeeplineRow } from "./mapping";
-import type { ImportInfo, LeadRecord, PlayInputSpec, SearchRecord, SourceInfo } from "./types";
+/** Deepline API client: list plays, fill a play's input from page context,
+ *  run it, read its status and outputs, and query the workspace database.
+ *  Every call takes a fetch implementation so it can be unit-tested. */
+import type { PageContext } from "./context";
 
 export const DEFAULT_BASE_URL = "https://code.deepline.com";
+export const TERMINAL = new Set(["completed", "failed", "cancelled"]);
 
-/** A callable play as listed by `GET /api/v2/plays` (subset we use). */
+export type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
+
+/** API key (device connection) or browser session (cookies). */
+export interface Credential {
+  baseUrl: string;
+  apiKey: string | null;
+}
+
 export interface PlaySummary {
   playKey: string;
-  name: string;
   displayName: string;
   description: string | null;
-  origin: "owned" | "prebuilt" | string;
-  inputSchema: Record<string, unknown> | null;
-  input: PlayInputSpec;
+  origin: string;
+  fields: string[];
+  required: string[];
+  /** Keys a declared `context` object accepts; null = any. */
+  contextFields: string[] | null;
+  /** Credits per run (or per row for row-unit plays), when Deepline can estimate it. */
+  cost: { low: number; high: number; perRow: boolean } | null;
+  /** Integrations the play calls (HubSpot, Salesforce, lemlist...). */
+  providers: string[];
 }
 
-/** Lead fields a LinkedIn page can provide, keyed by the input property names
- *  plays commonly declare. Order matters: the first alias present in a schema
- *  wins the value. */
-const LEAD_FIELD_ALIASES: Record<string, (lead: LeadRecord) => unknown> = {
-  linkedin_url: (l) => l.linkedin_url ?? l.sales_navigator_url,
-  linkedin: (l) => l.linkedin_url ?? l.sales_navigator_url,
-  linkedin_profile_url: (l) => l.linkedin_url ?? l.sales_navigator_url,
-  profile_url: (l) => l.linkedin_url ?? l.sales_navigator_url,
-  url: (l) => l.linkedin_url ?? l.sales_navigator_url,
-  sales_navigator_url: (l) => l.sales_navigator_url,
-  linkedin_member_urn: (l) => l.linkedin_member_urn,
-  full_name: (l) => l.full_name,
-  name: (l) => l.full_name,
-  person_name: (l) => l.full_name,
-  first_name: (l) => l.first_name,
-  last_name: (l) => l.last_name,
-  title: (l) => l.title,
-  job_title: (l) => l.title,
-  headline: (l) => l.headline,
-  company_name: (l) => l.company_name,
-  company: (l) => l.company_name,
-  organization: (l) => l.company_name,
-  company_linkedin_url: (l) => l.company_linkedin_url,
-  location: (l) => l.location,
-  connection_owner_url: (l) => l.connection_owner_url ?? null,
-  connection_source: (l) => l.connection_source ?? null,
-  connection_owner_urn: (l) => l.connection_owner_urn ?? null,
-  connected_at: (l) => l.connected_at ?? null,
-  connection_degree: (l) => l.connection_degree,
-  profile_image_url: (l) => l.profile_image_url,
-  about: (l) => l.about
+/** Providers this workspace can use right now: connected by the team, or provided by Deepline. */
+export async function connectedProviders(cred: Credential, fetchImpl: FetchLike = fetch): Promise<Set<string>> {
+  const json = await call<{ integrations?: { provider?: string; disabled?: boolean; auth?: { status?: string }; connection?: { connected?: boolean } }[] }>(cred, "/api/v2/integrations/list?include_integration_status=true", fetchImpl);
+  return new Set((json.integrations ?? []).filter((e) => e.provider && !e.disabled && (e.connection?.connected || e.auth?.status === "configured")).map((e) => e.provider!));
+}
+
+/** A play is offered only if every integration it calls is connected. `null` = status unknown, so offer it. */
+export function playAvailable(play: Pick<PlaySummary, "providers">, connected: Set<string> | null): boolean {
+  return !connected || play.providers.every((p) => connected.has(p));
+}
+
+/** "~3 credits", "1–4 credits", "cost varies". Per-row plays scale by the rep's cap. */
+export function costLabel(cost: PlaySummary["cost"], rows = 1): string {
+  if (!cost) return "cost varies";
+  const k = cost.perRow ? rows : 1;
+  const lo = Math.round(cost.low * k), hi = Math.round(cost.high * k);
+  if (hi === 0) return "free";
+  return lo === hi ? `~${hi} credit${hi === 1 ? "" : "s"}` : `${lo}–${hi} credits`;
+}
+export function maxCredits(cost: PlaySummary["cost"], rows = 1): number | null {
+  return cost ? cost.high * (cost.perRow ? rows : 1) : null;
+}
+
+/** Context fields keyed by the input names plays commonly declare. The first
+ *  matching alias wins, so a play only ever receives fields it declared. */
+const ALIASES: Record<string, (c: PageContext) => unknown> = {
+  linkedin_url: (c) => c.linkedin_url ?? c.sales_navigator_url,
+  linkedin: (c) => c.linkedin_url ?? c.sales_navigator_url,
+  linkedin_profile_url: (c) => c.linkedin_url,
+  contact_linkedin: (c) => c.linkedin_url,
+  sales_navigator_url: (c) => c.sales_navigator_url,
+  company_linkedin_url: (c) => c.company_linkedin_url,
+  linkedin_company_url: (c) => c.company_linkedin_url,
+  company_linkedin: (c) => c.company_linkedin_url,
+  search_url: (c) => c.search_url,
+  sales_nav_url: (c) => c.search_url,
+  domain: (c) => c.domain,
+  company_domain: (c) => c.domain,
+  website: (c) => c.domain,
+  full_name: (c) => c.full_name,
+  name: (c) => c.full_name ?? c.company_name,
+  contact_full_name: (c) => c.full_name,
+  first_name: (c) => c.first_name,
+  last_name: (c) => c.last_name,
+  company_name: (c) => c.company_name,
+  company: (c) => c.company_name,
+  crm_system: (c) => c.crm_system,
+  crm_object: (c) => c.crm_object,
+  crm_id: (c) => c.crm_id,
+  record_id: (c) => c.crm_id,
+  url: (c) => c.linkedin_url ?? c.search_url ?? c.url,
+  page_url: (c) => c.url,
+  entity_key: (c) => c.entity_key,
+  email: (c) => c.email,
+  work_email: (c) => c.email,
+  professional_email: (c) => c.email,
+  phone: (c) => c.phone,
+  limit: (c) => c.limit,
+  max_results: (c) => c.limit,
+  max_people: (c) => c.limit,
+  // A play that declares `context` gets the whole object.
+  context: (c) => c
 };
-const SEARCH_URL_FIELDS = ["search_url", "sales_navigator_url", "sales_nav_url", "salesnav_url", "url", "linkedin_search_url"];
 
-function schemaProperties(schema: Record<string, unknown> | null | undefined): { fields: string[]; required: string[]; types: Record<string, string> } {
-  const props = schema && typeof schema.properties === "object" && schema.properties ? (schema.properties as Record<string, unknown>) : {};
-  const fields = Object.keys(props);
-  const required = Array.isArray(schema?.required) ? (schema!.required as unknown[]).filter((r): r is string => typeof r === "string") : [];
-  const types: Record<string, string> = {};
-  for (const [k, v] of Object.entries(props)) {
-    const t = v && typeof v === "object" ? (v as { type?: unknown }).type : undefined;
-    types[k] = Array.isArray(t) ? String(t.find((x) => x !== "null") ?? "") : typeof t === "string" ? t : "";
-  }
-  return { fields, required, types };
-}
-
-/** Decide how to feed leads to a play from its declared input schema. A play
- *  without a schema accepts anything: we send the flat Deepline row per lead. */
-export function inferPlayInput(schema: Record<string, unknown> | null | undefined): PlayInputSpec {
-  const { fields, required, types } = schemaProperties(schema);
-  if (!fields.length) return { mode: "mapped", fields: [], required: [], acceptsSearch: true, acceptsLeads: true };
-  const acceptsSearch = fields.some((f) => SEARCH_URL_FIELDS.includes(f));
-  if (fields.includes("leads") && (types.leads === "array" || types.leads === "")) return { mode: "batch", fields, required, acceptsSearch, acceptsLeads: true };
-  if (fields.includes("lead") && (types.lead === "object" || types.lead === "")) return { mode: "lead", fields, required, acceptsSearch, acceptsLeads: true };
-  const mappable = fields.filter((f) => f in LEAD_FIELD_ALIASES);
-  // A play whose only URL-ish field is a search URL should not receive leads.
-  const leadOnly = mappable.filter((f) => !(f === "url" && acceptsSearch && !fields.includes("linkedin_url")));
-  return { mode: "mapped", fields, required, acceptsSearch, acceptsLeads: leadOnly.length > 0 };
-}
-
-export function summarizePlayInput(spec: PlayInputSpec): string {
-  if (!spec.fields.length) return "accepts any input (no schema)";
-  const req = spec.required.length ? ` · required: ${spec.required.join(", ")}` : "";
-  const mode = spec.mode === "batch" ? "one run per send (leads[])" : spec.mode === "lead" ? "one run per lead (lead{})" : "one run per lead (mapped fields)";
-  const what = [spec.acceptsLeads ? "leads" : null, spec.acceptsSearch ? "searches" : null].filter(Boolean).join(" + ") || "nothing the extension can provide";
-  return `${what} · ${mode}${req}`;
-}
-
-export interface PlayRun {
-  /** Sent as `input` to the run API. */
-  input: Record<string, unknown>;
-  leads: LeadRecord[];
-  label: string;
-}
-
-const META = (source: SourceInfo, imp: ImportInfo | null, custom: Record<string, string>) => ({ source: "linkedin-webhook-exporter", ...flattenSource(source), ...flattenImport(imp), custom });
-
-/** Build the run inputs for a set of leads under the play's input spec. */
-export function buildLeadRuns(spec: PlayInputSpec, leads: LeadRecord[], source: SourceInfo, imp: ImportInfo | null, custom: Record<string, string>, eventId: () => string, sentAt: string): PlayRun[] {
-  const row = (l: LeadRecord, id: string) => toDeeplineRow(l, source, custom, id, sentAt, imp);
-  if (spec.mode === "batch") {
-    const id = eventId();
-    return [{ input: { leads: leads.map((l) => row(l, id)), ...META(source, imp, custom) }, leads, label: `${leads.length} leads` }];
-  }
-  if (spec.mode === "lead") {
-    return leads.map((l) => {
-      const id = eventId();
-      return { input: { lead: row(l, id), ...META(source, imp, custom) }, leads: [l], label: l.full_name };
-    });
-  }
-  return leads.map((l) => {
-    const id = eventId();
-    if (!spec.fields.length) return { input: row(l, id), leads: [l], label: l.full_name };
-    const input: Record<string, unknown> = {};
-    for (const f of spec.fields) {
-      const pick = LEAD_FIELD_ALIASES[f];
-      if (!pick) continue;
-      const v = pick(l);
-      if (v != null && v !== "") input[f] = v;
-    }
-    return { input, leads: [l], label: l.full_name };
-  });
-}
-
-/** Input for a search handed to a play. With a schema, only declared fields
- *  are sent (so a strict play does not reject unknown keys); the search URL
- *  lands on whichever URL field the play declares. */
-export function buildSearchRun(spec: PlayInputSpec, search: SearchRecord, source: SourceInfo, imp: ImportInfo | null, custom: Record<string, string>, searchName: string | null): Record<string, unknown> {
-  const full: Record<string, unknown> = {
-    search_url: search.search_url,
-    search_name: searchName,
-    limit: search.limit,
-    page_type: search.page_type,
-    surface: search.surface,
-    query_expression: search.query_expression,
-    keywords: search.keywords,
-    filters: search.filters,
-    total_hint: search.total_hint,
-    list_id: search.list_id,
-    saved_search_id: search.saved_search_id,
-    imported_by: imp?.imported_by ?? source.captured_by,
-    import_id: imp?.import_id ?? null,
-    ...META(source, imp, custom)
-  };
-  if (!spec.fields.length) return full;
+/** Input for a play from page context: declared fields only, plus the
+ *  required fields this page cannot fill (the button says why it is off). */
+export function inputFor(play: Pick<PlaySummary, "fields" | "required"> & { contextFields?: string[] | null }, ctx: PageContext): { input: Record<string, unknown>; missing: string[] } {
   const input: Record<string, unknown> = {};
-  for (const f of spec.fields) {
-    if (SEARCH_URL_FIELDS.includes(f)) input[f] = search.search_url;
-    else if (f in full && full[f] != null) input[f] = full[f];
-    else if (f === "max_results" || f === "max" || f === "count") input[f] = search.limit;
-    else if (f === "name") input[f] = searchName;
+  for (const f of play.fields) {
+    let v = ALIASES[f]?.(ctx);
+    // Strict plays reject unknown keys, so a context object carries only the declared ones.
+    if (f === "context" && play.contextFields) v = Object.fromEntries(Object.entries(ctx).filter(([k]) => play.contextFields!.includes(k)));
+    if (v != null && v !== "") input[f] = v;
   }
-  return input;
+  return { input, missing: play.required.filter((f) => !(f in input)) };
 }
-
-/** Fields a play requires that no LinkedIn page can fill (so the operator
- *  learns before sending rather than from a 400). */
-export function unfillableRequired(spec: PlayInputSpec, purpose: "leads" | "search"): string[] {
-  if (!spec.fields.length) return [];
-  return spec.required.filter((f) => {
-    if (purpose === "search") return !(SEARCH_URL_FIELDS.includes(f) || ["search_name", "limit", "name", "imported_by", "import_id", "max_results", "page_type", "surface", "keywords", "filters"].includes(f));
-    if (spec.mode === "batch") return f !== "leads";
-    if (spec.mode === "lead") return f !== "lead";
-    return !(f in LEAD_FIELD_ALIASES);
-  });
-}
-
-/* ------------------------------------------------------------ API */
 
 export function normalizeBaseUrl(raw: string): string {
   const u = new URL(raw.trim() || DEFAULT_BASE_URL);
@@ -174,75 +113,95 @@ export function normalizeBaseUrl(raw: string): string {
   return `${u.protocol}//${u.host}`;
 }
 
-export function runEndpoint(baseUrl: string): string {
-  return `${normalizeBaseUrl(baseUrl)}/api/v2/plays/run`;
-}
-
-export interface FetchLike {
-  (input: string, init?: RequestInit): Promise<Response>;
-}
-
-/** Request options for the Deepline API: an API key when the operator set
- *  one, otherwise the browser session (cookies). */
 export function apiInit(apiKey: string | null | undefined, extra: RequestInit = {}): RequestInit {
   const headers: Record<string, string> = { Accept: "application/json", ...((extra.headers as Record<string, string>) ?? {}) };
   if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
-  return { ...extra, headers, credentials: apiKey ? "omit" : "include", redirect: "error" };
+  return { ...extra, headers, credentials: apiKey ? "omit" : "include", redirect: "error", cache: "no-store" };
 }
 
-function toSummary(p: Record<string, unknown>): PlaySummary | null {
+export class AuthError extends Error {}
+
+async function call<T>(cred: Credential, path: string, fetchImpl: FetchLike, body?: unknown): Promise<T> {
+  const init = body === undefined ? apiInit(cred.apiKey) : apiInit(cred.apiKey, { method: "POST", body: JSON.stringify(body), headers: { "Content-Type": "application/json" } });
+  const res = await fetchImpl(`${normalizeBaseUrl(cred.baseUrl)}${path}`, init);
+  if (res.status === 401 || res.status === 403) throw new AuthError("Not signed in to Deepline");
+  const json = (await res.json().catch(() => null)) as T & { error?: unknown };
+  if (!res.ok) throw new Error(typeof json?.error === "string" ? json.error : `Deepline responded ${res.status}`);
+  return json;
+}
+
+function schemaFields(schema: unknown): { fields: string[]; required: string[]; contextFields: string[] | null } {
+  const s = schema && typeof schema === "object" ? (schema as { properties?: Record<string, { properties?: unknown }>; required?: unknown }) : {};
+  const props = s.properties && typeof s.properties === "object" ? s.properties : {};
+  const required = Array.isArray(s.required) ? s.required.filter((r): r is string => typeof r === "string") : [];
+  const nested = props.context?.properties;
+  return { fields: Object.keys(props), required, contextFields: nested && typeof nested === "object" ? Object.keys(nested) : null };
+}
+
+export function toSummary(p: Record<string, unknown>): PlaySummary | null {
   const playKey = typeof p.playKey === "string" ? p.playKey : typeof p.reference === "string" ? p.reference : null;
   if (!playKey) return null;
-  const schema = p.inputSchema && typeof p.inputSchema === "object" ? (p.inputSchema as Record<string, unknown>) : null;
-  const name = typeof p.name === "string" ? p.name : playKey;
+  const est = (p.costEstimate ?? null) as { status?: string; lowCredits?: number; highCredits?: number; unit?: string } | null;
+  const cost = est?.status === "available" && typeof est.highCredits === "number" ? { low: est.lowCredits ?? est.highCredits, high: est.highCredits, perRow: est.unit === "row" } : null;
   return {
     playKey,
-    name,
-    displayName: typeof p.displayName === "string" && p.displayName ? p.displayName : name,
+    displayName: typeof p.displayName === "string" && p.displayName ? p.displayName : playKey,
     description: typeof p.description === "string" ? p.description : null,
     origin: typeof p.origin === "string" ? p.origin : "owned",
-    inputSchema: schema,
-    input: inferPlayInput(schema)
+    ...schemaFields(p.inputSchema),
+    cost,
+    providers: Array.isArray(p.providers) ? p.providers.filter((x): x is string => typeof x === "string") : []
   };
 }
 
-/** List callable plays: the org's own first, then Deepline prebuilt ones. */
-export async function listPlays(baseUrl: string, apiKey: string | null, fetchImpl: FetchLike = fetch): Promise<PlaySummary[]> {
-  const base = normalizeBaseUrl(baseUrl);
+/** The workspace's own plays first, then Deepline's prebuilt ones. */
+export async function listPlays(cred: Credential, fetchImpl: FetchLike = fetch): Promise<PlaySummary[]> {
   const out: PlaySummary[] = [];
-  for (const origin of ["owned", "prebuilt"] as const) {
-    const res = await fetchImpl(`${base}/api/v2/plays?origin=${origin}&limit=100`, apiInit(apiKey));
-    if (res.status === 401 || res.status === 403) throw new Error(apiKey ? "Deepline rejected the API key" : "Not signed in to Deepline");
-    if (!res.ok) throw new Error(`Deepline responded ${res.status}`);
-    const json = (await res.json()) as { plays?: unknown };
-    const plays = Array.isArray(json.plays) ? json.plays : [];
-    for (const p of plays) {
-      if (p && typeof p === "object") {
-        const s = toSummary(p as Record<string, unknown>);
-        if (s && !out.some((o) => o.playKey === s.playKey)) out.push({ ...s, origin });
-      }
+  for (const origin of ["owned", "prebuilt"]) {
+    const json = await call<{ plays?: unknown[] }>(cred, `/api/v2/plays?origin=${origin}&limit=100&include_cost_estimates=1`, fetchImpl);
+    for (const p of json.plays ?? []) {
+      const s = p && typeof p === "object" ? toSummary(p as Record<string, unknown>) : null;
+      if (s && !out.some((o) => o.playKey === s.playKey)) out.push({ ...s, origin });
     }
   }
   return out;
 }
 
-/** Cheap credential check: one page of one play. */
-export async function testApiKey(baseUrl: string, apiKey: string | null, fetchImpl: FetchLike = fetch): Promise<{ ok: boolean; status: number | null; error: string | null }> {
-  try {
-    const res = await fetchImpl(`${normalizeBaseUrl(baseUrl)}/api/v2/plays?limit=1`, apiInit(apiKey));
-    if (res.ok) return { ok: true, status: res.status, error: null };
-    return { ok: false, status: res.status, error: res.status === 401 || res.status === 403 ? (apiKey ? "API key rejected" : "Not signed in to Deepline") : `HTTP ${res.status}` };
-  } catch (e) {
-    return { ok: false, status: null, error: e instanceof Error ? e.message : String(e) };
-  }
+export interface RunState {
+  runId: string | null;
+  status: string;
+  /** Output values when the run is terminal (dataset outputs are referenced, not inlined). */
+  result: Record<string, unknown> | null;
+  error: string | null;
 }
 
-/** Extract the run id from a run API response body, whatever the field name. */
-export function runIdFrom(json: unknown): string | null {
-  if (!json || typeof json !== "object") return null;
-  const o = json as Record<string, unknown>;
-  for (const k of ["workflowId", "runId", "id", "run_id", "workflow_id"]) if (typeof o[k] === "string" && o[k]) return o[k] as string;
-  const run = o.run && typeof o.run === "object" ? (o.run as Record<string, unknown>) : null;
-  if (run) for (const k of ["workflowId", "id"]) if (typeof run[k] === "string") return run[k] as string;
-  return null;
+function runStateFrom(json: Record<string, unknown>): RunState {
+  const run = (json.run ?? {}) as Record<string, unknown>;
+  const runId = typeof run.id === "string" ? run.id : typeof json.runId === "string" ? json.runId : null;
+  const status = String(run.status ?? json.status ?? "queued");
+  const outputs = json.outputs && typeof json.outputs === "object" ? (json.outputs as Record<string, { kind?: string; value?: unknown; dataset?: string; rowCount?: number }>) : {};
+  const result: Record<string, unknown> = {};
+  for (const [k, o] of Object.entries(outputs)) result[k] = o?.kind === "value" ? o.value : { dataset: o?.dataset, rows: o?.rowCount };
+  const err = run.error ?? json.error;
+  return { runId, status, result: Object.keys(result).length ? result : null, error: typeof err === "string" ? err : err ? JSON.stringify(err) : null };
+}
+
+/** Start a run and wait up to 15 s server-side; longer runs are polled. */
+export async function startRun(cred: Credential, playKey: string, input: Record<string, unknown>, fetchImpl: FetchLike = fetch): Promise<RunState> {
+  return runStateFrom(await call<Record<string, unknown>>(cred, "/api/v2/plays/run", fetchImpl, { name: playKey, input, waitForCompletionMs: 15_000 }));
+}
+
+/** Constant-size status poll; fetches the run package only once it is terminal. */
+export async function pollRun(cred: Credential, runId: string, fetchImpl: FetchLike = fetch): Promise<RunState> {
+  const id = encodeURIComponent(runId);
+  const s = await call<{ available?: boolean; lifecycle?: { status?: string } }>(cred, `/api/v2/runs/${id}/status`, fetchImpl);
+  const status = s.available ? String(s.lifecycle?.status ?? "running") : "queued";
+  if (!TERMINAL.has(status)) return { runId, status, result: null, error: null };
+  return { ...runStateFrom(await call<Record<string, unknown>>(cred, `/api/v2/runs/${id}?billing=false`, fetchImpl)), runId, status };
+}
+
+/** One SQL statement against the workspace database (`deepline db query`). */
+export async function query<R = Record<string, unknown>>(cred: Credential, sql: string, fetchImpl: FetchLike = fetch, maxRows = 100): Promise<R[]> {
+  const json = await call<{ rows?: R[] }>(cred, "/api/v2/db/query", fetchImpl, { sql, max_rows: maxRows });
+  return json.rows ?? [];
 }

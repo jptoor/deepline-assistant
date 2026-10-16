@@ -1,0 +1,339 @@
+<title>Deepline Assistant Wireframes</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600&family=Geist+Mono:wght@400&display=swap">
+<style>
+/* Layout: a review board. Each step = browser URL strip + 340px panel mock (Deepline app tokens: silver surfaces, monochrome chrome, colour only for status, Geist 14/16) on the left; numbered annotations and rubric tags on the right; stacks at phone width. Review-board marks use brand blue, which the product chrome never does. */
+:root {
+  --bg: #fcfcfc;
+  --sheet: #ffffff;
+  --card: #f6f6f5;
+  --ink: #191918;
+  --ink-2: #5c5c5a;
+  --muted: #6e6e6c;
+  --line: color-mix(in srgb, #191918 10%, transparent);
+  --line-strong: #a3a3a0;
+  --fill: #ededec;
+  --fill-2: #e4e4e2;
+  --fill-edge: #d9d9d6;
+  --mark: #0000ff;
+  --mark-bg: #e5e5ff;
+  --ok-fg: #1b7e44; --ok-bg: #eafbf1; --ok-bd: #d5f6e3;
+  --bad-fg: #ad1f1f; --bad-bg: #fbe9e9; --bad-bd: #f7d4d4;
+  --info-fg: #045762; --info-bg: #e7fbfe; --info-bd: #cef7fd;
+  --later: #5c5c5a;
+  --later-bg: #ededec;
+  --cta: #242423;
+  --cta-fg: #fcfcfc;
+  --body: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --mono: "Geist Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #111110; --sheet: #1f1f1e; --card: #242423; --ink: #fcfcfc; --ink-2: #c9c9c6; --muted: #a3a3a0; --line: color-mix(in srgb, #fcfcfc 12%, transparent); --line-strong: #5c5c5a;
+  --fill: #313130; --fill-2: #3e3e3c; --fill-edge: #5c5c5a; --mark: #9999ff; --mark-bg: #000066;
+  --ok-fg: #81e4aa; --ok-bg: #061d10; --ok-bd: #12542d; --bad-fg: #e87d7d; --bad-bg: #1e0505; --bad-bd: #570f0f; --info-fg: #6ce8f9; --info-bg: #011e22; --info-bd: #045762;
+  --later: #c9c9c6; --later-bg: #313130; --cta: #3e3e3c; --cta-fg: #fcfcfc; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #111110; --sheet: #1f1f1e; --card: #242423; --ink: #fcfcfc; --ink-2: #c9c9c6; --muted: #a3a3a0; --line: color-mix(in srgb, #fcfcfc 12%, transparent); --line-strong: #5c5c5a;
+  --fill: #313130; --fill-2: #3e3e3c; --fill-edge: #5c5c5a; --mark: #9999ff; --mark-bg: #000066;
+  --ok-fg: #81e4aa; --ok-bg: #061d10; --ok-bd: #12542d; --bad-fg: #e87d7d; --bad-bg: #1e0505; --bad-bd: #570f0f; --info-fg: #6ce8f9; --info-bg: #011e22; --info-bd: #045762;
+  --later: #c9c9c6; --later-bg: #313130; --cta: #3e3e3c; --cta-fg: #fcfcfc; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 14px/1.45 var(--body); letter-spacing: -0.011em; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 32px 64px; }
+.wrap { max-width: 1120px; margin: 0 auto; display: grid; gap: 40px; }
+h1 { font: 600 28px/1.2 var(--body); letter-spacing: -0.02em; margin: 0; text-wrap: balance; }
+h2 { font: 600 20px/1.3 var(--body); letter-spacing: -0.014em; margin: 0; text-wrap: balance; }
+h3 { font-size: 16px; margin: 0; }
+p { margin: 0; max-width: 68ch; }
+.lede { color: var(--ink-2); font-size: 16px; }
+.eyebrow { color: var(--muted); }
+code, .mono { font-family: var(--mono); }
+
+/* Intro blocks */
+.intro { display: grid; gap: 14px; }
+.decisions { display: grid; gap: 0; background: var(--sheet); border: 1px solid var(--line); border-radius: 14px; padding: 4px 16px; }
+.decision { display: grid; grid-template-columns: minmax(160px, 220px) minmax(0, 1fr); gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); min-width: 0; }
+.decision:first-child { border-top: 0; }
+@media (max-width: 560px) { .decision { grid-template-columns: minmax(0, 1fr); gap: 2px; } }
+.decision b { font-weight: 600; }
+.decision span { color: var(--ink-2); }
+.journey { display: flex; flex-wrap: wrap; gap: 6px; }
+.journey a { font-weight: 600; color: var(--ink); text-decoration: none; border: 1px solid var(--line); background: var(--sheet); padding: 7px 10px; border-radius: 999px; }
+.journey a:hover, .journey a:focus-visible { border-color: var(--ink); }
+.journey a.later { color: var(--muted); border-style: dashed; }
+.rubric { overflow-x: auto; background: var(--sheet); border: 1px solid var(--line); border-radius: 14px; }
+.rubric table { border-collapse: collapse; width: 100%; min-width: 560px; }
+.rubric th, .rubric td { text-align: left; padding: 7px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.rubric th { font-weight: 600; color: var(--muted); }
+.rubric td:first-child, .rubric td:nth-child(3) { font-family: var(--mono); white-space: nowrap; }
+.rubric td:nth-child(3) { font-variant-numeric: tabular-nums; text-align: right; }
+
+/* Section */
+.section { display: grid; gap: 18px; scroll-margin-top: 16px; }
+.section-head { display: grid; gap: 6px; border-top: 2px solid var(--ink); padding-top: 14px; }
+.section-head .job { color: var(--ink-2); }
+
+/* Frame */
+.frame { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 24px; align-items: start; background: var(--sheet); border: 1px solid var(--line); border-radius: 18px; padding: 18px; }
+.frame.is-later { border-style: dashed; border-color: var(--line-strong); background: var(--bg); }
+@media (max-width: 760px) { .frame { grid-template-columns: minmax(0, 1fr); } }
+.frame-title h3 { font-size: 16px; font-weight: 600; }
+.frame-title { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.step { color: var(--muted); font-variant-numeric: tabular-nums; }
+.tag-later { font-weight: 600; color: var(--later); background: var(--later-bg); padding: 2px 8px; border-radius: 6px; }
+.notes { display: grid; gap: 12px; min-width: 0; }
+.notes ol { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; counter-reset: n; }
+.notes li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 8px; color: var(--ink-2); counter-increment: n; }
+.notes li::before { content: counter(n); font: 600 11px/22px var(--mono); text-align: center; color: var(--mark); background: var(--mark-bg); border-radius: 50%; width: 22px; height: 22px; }
+.crit { display: flex; flex-wrap: wrap; gap: 6px; }
+.crit span { font-size: 13px; border: 1px solid var(--line); padding: 5px 7px; border-radius: 4px; color: var(--ink-2); }
+.crit span b { color: var(--ink); }
+.spec { display: grid; gap: 0; border: 1px solid var(--line); border-radius: 10px; }
+.spec div { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 10px; padding: 8px 12px; border-top: 1px solid var(--line); }
+.spec div:first-child { border-top: 0; }
+.spec dt { color: var(--muted); margin: 0; }
+.spec dd { margin: 0; color: var(--ink); }
+.spec .pri dd { font-weight: 600; }
+@media (max-width: 560px) { .spec div { grid-template-columns: minmax(0, 1fr); gap: 2px; } }
+.ctabar { border-top: 1px solid var(--line); padding: 10px 12px 12px; background: var(--sheet); }
+.ctabar .btn { min-height: 44px; background: var(--cta); color: var(--cta-fg); border-color: var(--cta); }
+.ctabar .btn small { color: var(--cta-fg); opacity: .75; }
+.ctabar .btn.off { opacity: .55; }
+.more { display: grid; gap: 0; }
+.more .lk { display: flex; justify-content: space-between; gap: 8px; padding: 9px 0; border-top: 1px solid var(--line); }
+.more .lk:first-of-type { border-top: 0; }
+.more .lk small { color: var(--muted); font-size: 14px; white-space: nowrap; }
+.ask { border-left: 3px solid var(--mark); padding: 2px 0 2px 10px; color: var(--ink); }
+
+/* Device mock: Deepline app tokens */
+.device { border: 1px solid var(--line-strong); border-radius: 16px; overflow: hidden; background: var(--sheet); font-size: 14px; width: 100%; max-width: 340px; }
+.urlbar { display: flex; align-items: center; gap: 8px; background: var(--fill); padding: 7px 10px; border-bottom: 1px solid var(--line-strong); font: 12px/1.3 var(--mono); color: var(--ink-2); min-width: 0; }
+.urlbar .dots { display: flex; gap: 4px; flex: none; }
+.urlbar .dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--fill-edge); display: block; }
+.urlbar .u { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.p { padding: 10px 12px 14px; display: grid; gap: 10px; position: relative; }
+.p-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.p-head b { font-size: 16px; font-weight: 600; letter-spacing: -0.014em; }
+.p-head .who { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.box { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px; display: grid; gap: 8px; }
+.kind { color: var(--muted); display: flex; justify-content: space-between; gap: 6px; flex-wrap: wrap; }
+.kind u { text-underline-offset: 2px; color: var(--ink-2); }
+.ttl { font-size: 16px; font-weight: 600; letter-spacing: -0.014em; overflow-wrap: anywhere; }
+.btn { display: flex; justify-content: space-between; align-items: center; gap: 8px; min-height: 40px; border: 1px solid var(--fill-edge); border-radius: 10px; padding: 8px 10px; font-weight: 600; background: var(--fill); color: var(--ink); }
+.btn.pri { background: var(--fill-2); border-color: var(--line-strong); }
+.btn.off { opacity: .5; }
+.btn small { font-weight: 400; font-size: 14px; color: var(--muted); white-space: nowrap; }
+.btns { display: grid; gap: 6px; }
+.btn-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.btn-row .btn { flex: 1 1 120px; }
+.lnk { text-decoration: underline; text-underline-offset: 2px; color: var(--ink); }
+.row { border-top: 1px solid var(--line); padding-top: 8px; display: grid; gap: 3px; }
+.row:first-child { border-top: 0; padding-top: 0; }
+.row .top { display: flex; justify-content: space-between; gap: 6px; align-items: baseline; }
+.row .nm { font-weight: 600; overflow-wrap: anywhere; }
+.chip { font: 600 14px/1.2 var(--body); padding: 1px 8px; border-radius: 6px; white-space: nowrap; background: var(--info-bg); color: var(--info-fg); border: 1px solid var(--info-bd); }
+.chip.ok { background: var(--ok-bg); color: var(--ok-fg); border-color: var(--ok-bd); }
+.chip.bad { background: var(--bad-bg); color: var(--bad-fg); border-color: var(--bad-bd); }
+.sub { color: var(--muted); }
+.val { display: flex; justify-content: space-between; gap: 6px; align-items: baseline; font-family: var(--mono); min-width: 0; flex-wrap: wrap; }
+.val > span:first-child { overflow-wrap: anywhere; min-width: 0; }
+.val .st { font-family: var(--body); color: var(--muted); }
+.field { display: grid; grid-template-columns: 100px minmax(0, 1fr); gap: 6px; align-items: center; }
+.field span:first-child { color: var(--muted); }
+.input { background: var(--sheet); border: 1px solid var(--line); border-radius: 10px; padding: 7px 10px; color: var(--muted); display: flex; justify-content: space-between; gap: 6px; }
+.note { color: var(--ink-2); background: var(--fill); border-radius: 10px; padding: 8px 10px; }
+.alert { background: var(--bad-bg); border: 1px solid var(--bad-bd); color: var(--ink); border-radius: 10px; padding: 10px; display: grid; gap: 8px; }
+.alert.warn { background: var(--card); border-color: var(--line-strong); }
+.bar { height: 6px; border-radius: 3px; background: var(--fill); overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--info-fg); }
+.sk { height: 10px; border-radius: 4px; background: var(--fill-2); }
+.pin { position: absolute; width: 20px; height: 20px; border-radius: 50%; background: var(--mark); color: var(--sheet); font: 600 11px/20px var(--mono); text-align: center; right: 2px; pointer-events: none; }
+.gmail { display: grid; gap: 6px; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+.gmail .pill { display: inline-flex; gap: 6px; align-items: center; border: 1px dashed var(--later); color: var(--later); border-radius: 999px; padding: 3px 9px; width: max-content; max-width: 100%; }
+.results { padding: 8px 12px; display: grid; gap: 6px; border-bottom: 1px solid var(--line); }
+.results div { display: flex; gap: 8px; align-items: center; }
+.results i { width: 14px; height: 14px; border: 1px solid var(--ink-2); border-radius: 4px; flex: none; }
+.results i.on { background: var(--ink-2); }
+:focus-visible { outline: 2px solid var(--mark); outline-offset: 2px; }
+footer { color: var(--muted); font-size: 13px; display: grid; gap: 6px; }
+</style>
+
+<div class="wrap">
+  <header class="intro">
+    <span class="eyebrow">Review draft, 15 October 2026</span>
+    <h1>Deepline Assistant wireframes</h1>
+    <p class="lede">Every screen a sales rep sees, at real panel width, in the Deepline app's own styles. Each screen has one pinned action: the most important job for that moment. Each frame states the rep's goal, what they must see, that action, and what Deepline does in the background.</p>
+    <nav class="journey" aria-label="Journeys" id="jumps"></nav>
+  </header>
+
+  <section class="intro" aria-labelledby="dec">
+    <h2 id="dec">Rules every screen follows</h2>
+    <dl class="decisions">
+      <div class="decision"><b>One pinned action</b><span>The bottom of the panel always holds the single most important action, with what it will do and what it costs. Everything else is a quiet text link.</span></div>
+      <div class="decision"><b>Nothing technical for reps</b><span>No keys, settings, play names to set up, or URLs. The central team chooses the actions and handoffs once in Deepline; reps just click.</span></div>
+      <div class="decision"><b>One-step sign-in</b><span>Installing opens Deepline sign-in. If the rep is already signed in, the panel is connected with no steps at all.</span></div>
+      <div class="decision"><b>What you have, then what to do</b><span>Saved results show before any paid action. Once a result is in, the pinned action becomes the handoff or Copy email, never a second paid lookup.</span></div>
+      <div class="decision"><b>Credits on the button</b><span>Every action shows its cost. Anything over 25 credits asks once in the panel. No charge.</span></div>
+      <div class="decision"><b>Only the address and title</b><span>The panel reads the page address and tab title, nothing else, so LinkedIn sees nothing. Deepline does every lookup.</span></div>
+    </dl>
+  </section>
+
+  <section class="intro" aria-labelledby="rub">
+    <h2 id="rub">Scoring rubric</h2>
+    <p>From 122 Chrome Web Store reviews and 21 YouTube walkthroughs. Weights sum to 100. Each frame names the criteria it targets.</p>
+    <div class="rubric"><table>
+      <thead><tr><th>#</th><th>Criterion</th><th>Weight</th><th>What a 5 looks like</th></tr></thead>
+      <tbody id="rubricBody"></tbody>
+    </table></div>
+  </section>
+
+  <div id="sections" class="wrap" style="gap:48px"></div>
+
+  <footer>
+    <span>Sources: docs/research/jtbd-journey-rubric.md, docs/research/competitor-extensions.md, docs/research/zi-extension-analysis.md in jptoor/deepline-assistant.</span>
+    <span>Names, emails, credit costs and numbers in the frames are examples.</span>
+  </footer>
+</div>
+
+<script>
+const RUBRIC = [
+  ["C1","Time and clicks to first useful result",14,"Panel open plus one click; result streams in under 5 s; usable for the next profile at once"],
+  ["C2","Shows existing data before spending",10,"Existing rows appear before any paid button, with age and source"],
+  ["C3","Data trust signal",10,"Per-field status, source, freshness, and a one-click refresh"],
+  ["C4","No separate login, clean auth recovery",9,"Uses the web session; one explicit, recoverable state when it fails"],
+  ["C5","Coexists with the page and other tools",9,"Works at 320 px, never injects, never needs a restart"],
+  ["C6","Cost transparency",9,"Cost on the button, no charge on a miss, spend shown after"],
+  ["C7","Act on the result in one step",9,"One click to an admin-preset destination, with a link back"],
+  ["C8","Bulk path for searches and lists",7,"Whole search handed off server-side with count, cost and progress"],
+  ["C9","Persistence and history",7,"Every lookup saved, searchable in the panel, survives closing it"],
+  ["C10","Error and empty-state recovery",6,"A specific state and one next action for each failure"],
+  ["C11","Correct page recognition, visibly",5,"Shows what was detected and lets the rep correct it"],
+  ["C12","LinkedIn and account safety",3,"URL and title only; nothing a site can detect"],
+  ["C13","Keyboard and copy affordances",2,"Shortcut to open and run; every value click-to-copy"],
+];
+const W = Object.fromEntries(RUBRIC.map(r => [r[0], r]));
+
+/* ---------- mock building blocks (grayscale) ---------- */
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const url = u => `<div class="urlbar"><span class="dots"><i></i><i></i><i></i></span><span class="u">${esc(u)}</span></div>`;
+const head = (who = "jai@acme.io") => `<div class="p-head"><b>Deepline Assistant</b><span class="who">${esc(who)}</span></div>`;
+const btn = (label, meta = "", cls = "") => `<div class="btn ${cls}"><span>${label}</span>${meta ? `<small>${meta}</small>` : ""}</div>`;
+const chip = (t, cls = "") => `<span class="chip ${cls}">${t}</span>`;
+const val = (v, st) => `<div class="val"><span>${v}</span><span class="st">${st}</span></div>`;
+const pin = (n, top) => `<span class="pin" style="top:${top}px">${n}</span>`;
+const device = (u, body) => `<div class="device" role="img" aria-label="Panel wireframe">${url(u)}<div class="p">${body}</div></div>`;
+const tableSec = rows => `<div class="box"><div class="kind"><b style="color:var(--ink)">My table</b><span class="lnk">Refresh</span></div><div class="input"><span>Filter by name, email, play</span></div>${rows}</div>`;
+
+const PROFILE = "linkedin.com/in/maya-okafor-4b1";
+const card = (kind, title, detected, inner = "") => `<div class="box"><div class="kind"><span>${kind}</span><u>${detected}</u></div><div class="ttl">${title}</div>${inner}</div>`;
+const cta = (label, meta = "", off = false) => `<div class="ctabar">${btn(label, meta, off ? "off" : "")}</div>`;
+const more = (items) => `<div class="more"><span class="sub">More</span>${items.map(([l, m]) => `<div class="lk"><span class="lnk">${l}</span><small>${m}</small></div>`).join("")}</div>`;
+const panel = (u, body, ctaHtml) => `<div class="device" role="img" aria-label="Panel wireframe">${url(u)}<div class="p">${body}</div>${ctaHtml}</div>`;
+const browser = (u, body) => `<div class="device" role="img" aria-label="Browser tab wireframe">${url(u)}<div class="p">${body}</div></div>`;
+
+const SECTIONS = [
+ { id: "start", label: "Get started", title: "Install and sign in", job: "Hygiene: don't make me log in again, don't lock me out.", frames: [
+  { t: "Install opens sign-in", crit: ["C4","C1"],
+    mock: browser("code.deepline.com/sign-in", `<div class="ttl">Sign in to Deepline</div><span class="sub">Opened automatically when you added the extension.</span>${btn("Continue with Google","","pri")}${btn("Email me a sign-in link")}`),
+    goal: "Get set up without thinking about it.", needs: "Nothing new: the same Deepline account the team already uses.", cta: "Continue with Google (in the Deepline tab)", sys: "Installing opens this tab. Signing in here connects the panel; there is no second login." },
+  { t: "Already signed in", crit: ["C4","C1"],
+    mock: panel(PROFILE, head() + card("LinkedIn profile","Maya Okafor","read from the address", `<span class="sub">Not looked up yet</span>`), cta("Find email + phone","~3 credits")),
+    goal: "Start working immediately.", needs: "That it's connected (their email, top right) and who is on screen.", cta: "Find email + phone · ~3 credits", sys: "Zero setup steps. The panel found the Deepline session and the team's actions." },
+  { t: "Not signed in yet", crit: ["C4"],
+    mock: panel(PROFILE, head("") + `<div class="box"><div class="ttl">Sign in to start</div><span class="sub">Use your team's Deepline account. You only do this once.</span><span class="lnk">Trouble signing in? Approve this browser</span></div>`, cta("Sign in to Deepline")),
+    goal: "Get in.", needs: "One way in, plus a way out if SSO blocks it.", cta: "Sign in to Deepline", sys: "Opens the sign-in tab; the panel connects the moment the tab finishes signing in." },
+  { t: "Signed out later", crit: ["C4","C10"],
+    mock: panel(PROFILE, head("") + `<div class="alert warn"><b>You're signed out of Deepline</b><span>Your saved lookups are safe.</span></div>` + card("LinkedIn profile","Maya Okafor","read from the address", `<span class="sub">Saved 3d ago: email, phone</span>`), cta("Sign in again")),
+    goal: "Get back to work without losing anything.", needs: "That nothing was lost.", cta: "Sign in again", sys: "Saved results stay visible; nothing re-runs." },
+  { t: "Team setup isn't done", crit: ["C10"],
+    mock: panel(PROFILE, head() + `<div class="box"><div class="ttl">Not set up yet</div><span class="sub">Ask your Deepline admin to turn this on.</span><span class="lnk">Try again</span></div>`, cta("Copy note for admin")),
+    goal: "Get unblocked without understanding why.", needs: "Who can fix it.", cta: "Copy note for admin", sys: "Copies a plain-English request that names the one setup step." },
+ ]},
+ { id: "admin", label: "Central team", title: "One-time setup in Deepline", job: "The central team decides what reps see. Reps never do this.", frames: [
+  { t: "Choose actions and handoffs", crit: ["C7","C6"],
+    mock: browser("code.deepline.com/plays/deepline-assistant-setup", `<div class="ttl">Deepline Assistant setup</div>
+      <div class="field"><span>People</span><span>Find email + phone, Job change check</span></div>
+      <div class="field"><span>Companies</span><span>Find VP Sales + RevOps</span></div>
+      <div class="field"><span>Searches</span><span>Import and enrich</span></div>
+      <div class="field"><span>Handoffs</span><span>Add to HubSpot, Add to Q4 lemlist</span></div>
+      <div class="field"><span>Ask first over</span><span>25 credits</span></div>${btn("Save for the team","","pri")}`),
+    goal: "Give every rep the same few right actions.", needs: "Which actions per kind of page, which handoffs, a spending check.", cta: "Save for the team", sys: "Creates the lookup table and saves these choices; every rep's panel picks them up on next open." },
+ ]},
+ { id: "person", label: "Person", title: "A LinkedIn profile or Sales Navigator lead", job: "Reach this person. Don't pay twice. Trust it before I send.", frames: [
+  { t: "New person", crit: ["C1","C6","C11","C12"],
+    mock: panel(PROFILE, head() + card("LinkedIn profile","Maya Okafor","read from the address", `<span class="sub">Not looked up yet</span>` + more([["Job change check","~1 credit"]])), cta("Find email + phone","~3 credits")),
+    goal: "Get a way to reach Maya.", needs: "That it's the right person, that nothing is saved yet, the cost.", cta: "Find email + phone · ~3 credits", sys: "Sends Maya's profile address to the team's action; checks every provider in turn; misses are free." },
+  { t: "Working", crit: ["C1","C5","C9"],
+    mock: panel(PROFILE, head() + card("LinkedIn profile","Maya Okafor","read from the address", `<div class="row"><div class="top"><span class="nm">Find email + phone</span>${chip("working")}</div><div class="sk" style="width:70%"></div><div class="sk" style="width:45%"></div></div><span class="sub">You can open the next profile. This keeps going.</span>`), cta("Working…","",true)),
+    goal: "Keep moving.", needs: "That it's happening and that leaving is safe.", cta: "Working… (disabled)", sys: "Saved as in progress before it starts, so closing the panel loses nothing." },
+  { t: "Found, with a handoff", crit: ["C3","C7","C13"],
+    mock: panel(PROFILE, head() + card("LinkedIn profile","Maya Okafor","read from the address", `<div class="row"><div class="top"><span class="nm">Find email + phone</span>${chip("done","ok")}</div>${val("maya@northwind.io","verified · today")}${val("+1 415 555 0142","mobile · today")}<span class="lnk">Wrong or bounced? Find email + phone again</span></div>` + more([["Copy email",""],["Add to Q4 lemlist","free"]])), cta("Add to HubSpot","free")),
+    goal: "Use the result without copy-paste.", needs: "The email and phone, whether to trust them, where they can go.", cta: "Add to HubSpot", sys: "Shown only when the workspace has HubSpot connected. Runs the team's HubSpot handoff with Maya's details; the row then reads 'Add to HubSpot: done' with a link." },
+  { t: "Found, no handoff set up", crit: ["C3","C13"],
+    mock: panel(PROFILE, head() + card("LinkedIn profile","Maya Okafor","read from the address", `<div class="row"><div class="top"><span class="nm">Find email + phone</span>${chip("done · 12d ago","ok")}</div>${val("maya@northwind.io","verified 12d ago")}${val("+1 415 555 0142","mobile")}</div>` + more([["Find email + phone again","~3 credits"],["Job change check","~1 credit"]])), cta("Copy email","maya@northwind.io")),
+    goal: "Get the email into my email.", needs: "The saved value and how old it is.", cta: "Copy email", sys: "Nothing is re-bought. Looking up again is a deliberate, priced choice." },
+  { t: "Nothing found", crit: ["C10","C6"],
+    mock: panel(PROFILE, head() + card("LinkedIn profile","Maya Okafor","read from the address", `<div class="row"><div class="top"><span class="nm">Find email + phone</span>${chip("nothing found","bad")}</div><span class="sub">Every provider checked. No charge.</span></div>`), cta("Job change check","~1 credit")),
+    goal: "Know what to try next.", needs: "That it really looked, and that it was free.", cta: "The team's next action (here, Job change check)", sys: "No charge for the miss." },
+  { t: "Sales Navigator lead", crit: ["C11","C12"],
+    mock: panel("linkedin.com/sales/lead/ACwAAB3k…", head() + card("Sales Navigator lead","Sam Lee","read from the address", `<span class="sub">Sales Navigator hides the public profile, so this finds it from the name first.</span>`), cta("Find email + phone","~4 credits")),
+    goal: "Same as a profile.", needs: "Why it costs a little more.", cta: "Find email + phone · ~4 credits", sys: "Finds the public profile from the name, then looks up email and phone." },
+ ]},
+ { id: "company", label: "Company", title: "A company website or LinkedIn company page", job: "Find the right people at this account.", frames: [
+  { t: "Company page", crit: ["C1","C11","C2"],
+    mock: panel("northwind.io/pricing", head() + card("Company website","northwind.io","read from the address", `<div class="field"><span>HQ</span><span>San Francisco, CA</span></div><div class="field"><span>Employees</span><span>210</span></div>` + more([["Company details","~1 credit"]])), cta("Find VP Sales + RevOps","~6 credits")),
+    goal: "Find who to contact here.", needs: "That it's the right company, plus HQ and size.", cta: "Find VP Sales + RevOps · ~6 credits", sys: "Uses the domain only. Tool sites (Google, Gmail, GitHub) never show as companies." },
+ ]},
+ { id: "search", label: "Search", title: "A search or list", job: "Turn a search into a list, without paging.", frames: [
+  { t: "Import with a limit", crit: ["C8","C6","C12"],
+    mock: panel("linkedin.com/sales/search/people?query=…", head() + card("Sales Navigator search","VP Sales · SaaS · 51–200","read from the address", `<div class="field"><span>How many</span><span class="input" style="padding:3px 8px"><span style="color:var(--ink)">25</span><span>people</span></span></div><span class="sub">Deepline fetches the results. Nothing is read from this page.</span>`), cta("Import and enrich: 25 people","up to 75 credits")),
+    goal: "Turn this search into a list.", needs: "How many, the cost, that LinkedIn isn't touched.", cta: "Import and enrich: 25 people · up to 75 credits", sys: "Hands the search address to the team's import; each person becomes a saved lookup." },
+  { t: "Over 25 credits", crit: ["C6"],
+    mock: panel("linkedin.com/sales/search/people?query=…", head() + card("Sales Navigator search","VP Sales · SaaS · 51–200","read from the address", `<div class="alert warn"><b>Up to 300 credits</b><span>You only pay for what's found.</span><span class="lnk">Cancel</span></div>`), cta("Go ahead","up to 300 credits")),
+    goal: "Avoid a surprise bill.", needs: "The worst-case cost.", cta: "Go ahead · up to 300 credits", sys: "The confirm is part of the panel, never a pop-up." },
+  { t: "Importing", crit: ["C8","C9"],
+    mock: panel("linkedin.com/feed/", head() + `<div class="box"><div class="row"><div class="top"><span class="nm">VP Sales · SaaS · 51–200</span>${chip("38 of 100")}</div><div class="bar"><i style="width:38%"></i></div><span class="sub">31 emails, 22 phones so far</span></div></div>`, cta("Search your lookups")),
+    goal: "Get on with the day.", needs: "Progress, from any page.", cta: "Search your lookups", sys: "Keeps going with the panel closed." },
+ ]},
+ { id: "crm", label: "CRM record", title: "A Salesforce or HubSpot record", job: "Fill gaps without leaving the CRM.", frames: [
+  { t: "CRM contact", crit: ["C11","C7"],
+    mock: panel("acme.lightning.force.com/lightning/r/Contact/003Ak…", head() + card("Salesforce contact","Contact 003Ak00000ABCDe","read from the address"), cta("Fill missing email + phone","~3 credits")),
+    goal: "Complete this record.", needs: "That the panel knows which record.", cta: "Fill missing email + phone · ~3 credits", sys: "The team's CRM action gets the record id and writes back to Salesforce." },
+ ]},
+ { id: "lookups", label: "Your lookups", title: "Everyone you've looked up", job: "Find who I looked up last week.", frames: [
+  { t: "Any other page", crit: ["C9","C13","C5"],
+    mock: panel("mail.google.com/mail/u/0/#inbox", head() + `<div class="box"><span class="sub">Open a LinkedIn profile, company or search, a CRM record, or a company website.</span></div>` + tableSec(`<div class="row"><div class="top"><span class="nm">Maya Okafor</span>${chip("done","ok")}</div><span class="sub">Find email + phone · 2m ago</span>${val("maya@northwind.io","verified")}</div><div class="row"><div class="top"><span class="nm">Priya Shah</span>${chip("done","ok")}</div><span class="sub">Finished while the panel was closed</span></div><div class="row"><div class="top"><span class="nm">Leo Martins</span>${chip("didn't finish","bad")}</div><span class="sub">A provider timed out. Not charged.</span></div>`), cta("Search your lookups")),
+    goal: "Find someone again.", needs: "Names, emails, what's done and what failed.", cta: "Search your lookups", sys: "Every lookup is saved in Deepline; anything that finished while closed is filled in on open." },
+ ]},
+ { id: "later", label: "Later", later: true, title: "Later", job: "Shown so you can approve or cut it. Gmail is out of scope for now.", frames: [
+  { t: "Pick people on a results page", later: true, crit: ["C8"],
+    mock: `<div class="device" role="img" aria-label="Selection wireframe">${url("linkedin.com/sales/search/people?query=…")}<div class="results"><div><i class="on"></i>Maya Okafor · VP Sales</div><div><i></i>Sam Lee · Head of RevOps</div><div><i class="on"></i>Priya Shah · CRO</div></div><div class="p">${head()}</div>${cta("Find email + phone for 2","~6 credits")}</div>`,
+    goal: "Choose exactly who.", needs: "Checkboxes on LinkedIn.", cta: "Find email + phone for 2", sys: "Needs scripts inside LinkedIn, which LinkedIn detects. The capped import covers volume without it.", ask: "Cut, or keep as a later opt-in?" },
+ ]},
+];
+
+/* ---------- render ---------- */
+document.getElementById("rubricBody").innerHTML = RUBRIC.map(r => `<tr><td>${r[0]}</td><td>${esc(r[1])}</td><td>${r[2]}</td><td>${esc(r[3])}</td></tr>`).join("");
+document.getElementById("jumps").innerHTML = SECTIONS.map(s => `<a href="#${s.id}" class="${s.later ? "later" : ""}">${esc(s.label)}</a>`).join("");
+let n = 0;
+document.getElementById("sections").innerHTML = SECTIONS.map(s => `
+  <section class="section" id="${s.id}" aria-labelledby="h-${s.id}">
+    <div class="section-head"><h2 id="h-${s.id}">${esc(s.title)}</h2><p class="job">${esc(s.job)}</p></div>
+    ${s.frames.map(f => { n++; return `
+    <article class="frame ${f.later ? "is-later" : ""}">
+      <div>${f.mock}</div>
+      <div class="notes">
+        <div class="frame-title"><span class="step">${n}</span><h3>${esc(f.t)}</h3>${f.later ? `<span class="tag-later">Later</span>` : ""}</div>
+        <dl class="spec">
+          <div><dt>Rep's goal</dt><dd>${esc(f.goal)}</dd></div>
+          <div><dt>Must see</dt><dd>${esc(f.needs)}</dd></div>
+          <div class="pri"><dt>Priority action</dt><dd>${esc(f.cta)}</dd></div>
+          <div><dt>Deepline does</dt><dd>${esc(f.sys)}</dd></div>
+        </dl>
+        <div class="crit" aria-label="Rubric criteria this screen targets">${f.crit.map(c => `<span title="${esc(W[c][1])}"><b>${c}</b> ${esc(W[c][1])} · ${W[c][2]}</span>`).join("")}</div>
+        ${f.ask ? `<p class="ask"><b>For you:</b> ${esc(f.ask)}</p>` : ""}
+      </div>
+    </article>`; }).join("")}
+  </section>`).join("");
+</script>
