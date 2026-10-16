@@ -55,4 +55,5 @@ for (const f of ["src/sidepanel/sidepanel.html"]) {
 }
 cpSync("src/icons", resolve(outdir, "icons"), { recursive: true });
 cpSync("src/brand", resolve(outdir, "brand"), { recursive: true });
+cpSync("src/fonts", resolve(outdir, "fonts"), { recursive: true });
 console.log(`built -> ${outdir}`);

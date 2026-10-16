@@ -1,0 +1,351 @@
+<title>Deepline Assistant Wireframes</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600&family=Geist+Mono:wght@400;600&family=Instrument+Serif&display=swap">
+<style>
+/* Layout: a review board. Each step = browser URL strip + 340px panel mock (Deepline app tokens: silver surfaces, monochrome chrome, colour only for status, Geist 14/16) on the left; numbered annotations and rubric tags on the right; stacks at phone width. Review-board marks use brand blue, which the product chrome never does. */
+:root {
+  --bg: #fcfcfc;
+  --sheet: #ffffff;
+  --card: #f6f6f5;
+  --ink: #191918;
+  --ink-2: #5c5c5a;
+  --muted: #6e6e6c;
+  --line: color-mix(in srgb, #191918 10%, transparent);
+  --line-strong: #a3a3a0;
+  --fill: #ededec;
+  --fill-2: #e4e4e2;
+  --fill-edge: #d9d9d6;
+  --mark: #0000ff;
+  --mark-bg: #e5e5ff;
+  --ok-fg: #1b7e44; --ok-bg: #eafbf1; --ok-bd: #d5f6e3;
+  --bad-fg: #ad1f1f; --bad-bg: #fbe9e9; --bad-bd: #f7d4d4;
+  --info-fg: #045762; --info-bg: #e7fbfe; --info-bd: #cef7fd;
+  --later: #5c5c5a;
+  --later-bg: #ededec;
+  --display: "Instrument Serif", Georgia, "Times New Roman", serif;
+  --body: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --mono: "Geist Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #111110; --sheet: #1f1f1e; --card: #242423; --ink: #fcfcfc; --ink-2: #c9c9c6; --muted: #a3a3a0; --line: color-mix(in srgb, #fcfcfc 12%, transparent); --line-strong: #5c5c5a;
+  --fill: #313130; --fill-2: #3e3e3c; --fill-edge: #5c5c5a; --mark: #9999ff; --mark-bg: #000066;
+  --ok-fg: #81e4aa; --ok-bg: #061d10; --ok-bd: #12542d; --bad-fg: #e87d7d; --bad-bg: #1e0505; --bad-bd: #570f0f; --info-fg: #6ce8f9; --info-bg: #011e22; --info-bd: #045762;
+  --later: #c9c9c6; --later-bg: #313130; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #111110; --sheet: #1f1f1e; --card: #242423; --ink: #fcfcfc; --ink-2: #c9c9c6; --muted: #a3a3a0; --line: color-mix(in srgb, #fcfcfc 12%, transparent); --line-strong: #5c5c5a;
+  --fill: #313130; --fill-2: #3e3e3c; --fill-edge: #5c5c5a; --mark: #9999ff; --mark-bg: #000066;
+  --ok-fg: #81e4aa; --ok-bg: #061d10; --ok-bd: #12542d; --bad-fg: #e87d7d; --bad-bg: #1e0505; --bad-bd: #570f0f; --info-fg: #6ce8f9; --info-bg: #011e22; --info-bd: #045762;
+  --later: #c9c9c6; --later-bg: #313130; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 14px/1.45 var(--body); letter-spacing: -0.011em; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 32px 64px; }
+.wrap { max-width: 1120px; margin: 0 auto; display: grid; gap: 40px; }
+h1 { font: 400 clamp(32px, 5vw, 48px)/1.05 var(--display); margin: 0; text-wrap: balance; }
+h2 { font: 400 28px/1.15 var(--display); margin: 0; text-wrap: balance; }
+h3 { font-size: 16px; margin: 0; }
+p { margin: 0; max-width: 68ch; }
+.lede { color: var(--ink-2); font-size: 16px; }
+.eyebrow { font: 600 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+code, .mono { font-family: var(--mono); }
+
+/* Intro blocks */
+.intro { display: grid; gap: 14px; }
+.decisions { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.decision { background: var(--sheet); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; display: grid; gap: 4px; min-width: 0; }
+.decision b { font-size: 16px; font-weight: 600; }
+.decision span { color: var(--ink-2); }
+.journey { display: flex; flex-wrap: wrap; gap: 6px; }
+.journey a { font: 600 12px/1 var(--mono); color: var(--ink); text-decoration: none; border: 1px solid var(--line); background: var(--sheet); padding: 7px 10px; border-radius: 999px; }
+.journey a:hover, .journey a:focus-visible { border-color: var(--ink); }
+.journey a.later { color: var(--muted); border-style: dashed; }
+.rubric { overflow-x: auto; background: var(--sheet); border: 1px solid var(--line); border-radius: 14px; }
+.rubric table { border-collapse: collapse; width: 100%; min-width: 560px; }
+.rubric th, .rubric td { text-align: left; padding: 7px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.rubric th { font: 600 11px/1.2 var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.rubric td:first-child, .rubric td:nth-child(3) { font-family: var(--mono); white-space: nowrap; }
+.rubric td:nth-child(3) { font-variant-numeric: tabular-nums; text-align: right; }
+
+/* Section */
+.section { display: grid; gap: 18px; scroll-margin-top: 16px; }
+.section-head { display: grid; gap: 6px; border-top: 2px solid var(--ink); padding-top: 14px; }
+.section-head .job { color: var(--ink-2); }
+
+/* Frame */
+.frame { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 24px; align-items: start; background: var(--sheet); border: 1px solid var(--line); border-radius: 18px; padding: 18px; }
+.frame.is-later { border-style: dashed; border-color: var(--line-strong); background: var(--bg); }
+@media (max-width: 760px) { .frame { grid-template-columns: minmax(0, 1fr); } }
+.frame-title h3 { font-size: 16px; font-weight: 600; }
+.frame-title { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.step { font: 600 12px/1 var(--mono); color: var(--muted); }
+.tag-later { font: 600 11px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--later); background: var(--later-bg); padding: 4px 7px; border-radius: 4px; }
+.notes { display: grid; gap: 12px; min-width: 0; }
+.notes ol { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; counter-reset: n; }
+.notes li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 8px; color: var(--ink-2); counter-increment: n; }
+.notes li::before { content: counter(n); font: 600 11px/22px var(--mono); text-align: center; color: var(--mark); background: var(--mark-bg); border-radius: 50%; width: 22px; height: 22px; }
+.crit { display: flex; flex-wrap: wrap; gap: 6px; }
+.crit span { font: 600 11px/1 var(--mono); border: 1px solid var(--line); padding: 5px 7px; border-radius: 4px; color: var(--ink-2); }
+.crit span b { color: var(--ink); }
+.ask { border-left: 3px solid var(--mark); padding: 2px 0 2px 10px; color: var(--ink); }
+
+/* Device mock: Deepline app tokens */
+.device { border: 1px solid var(--line-strong); border-radius: 16px; overflow: hidden; background: var(--sheet); font-size: 14px; width: 100%; max-width: 340px; }
+.urlbar { display: flex; align-items: center; gap: 8px; background: var(--fill); padding: 7px 10px; border-bottom: 1px solid var(--line-strong); font: 12px/1.3 var(--mono); color: var(--ink-2); min-width: 0; }
+.urlbar .dots { display: flex; gap: 4px; flex: none; }
+.urlbar .dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--fill-edge); display: block; }
+.urlbar .u { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.p { padding: 10px 12px 14px; display: grid; gap: 10px; position: relative; }
+.p-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.p-head b { font-size: 16px; font-weight: 600; letter-spacing: -0.014em; }
+.p-head .who { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.box { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px; display: grid; gap: 8px; }
+.kind { color: var(--muted); display: flex; justify-content: space-between; gap: 6px; flex-wrap: wrap; }
+.kind u { text-underline-offset: 2px; color: var(--ink-2); }
+.ttl { font-size: 16px; font-weight: 600; letter-spacing: -0.014em; overflow-wrap: anywhere; }
+.btn { display: flex; justify-content: space-between; align-items: center; gap: 8px; min-height: 40px; border: 1px solid var(--fill-edge); border-radius: 10px; padding: 8px 10px; font-weight: 600; background: var(--fill); color: var(--ink); }
+.btn.pri { background: var(--fill-2); border-color: var(--line-strong); }
+.btn.off { opacity: .5; }
+.btn small { font-weight: 400; font-size: 14px; color: var(--muted); white-space: nowrap; }
+.btns { display: grid; gap: 6px; }
+.btn-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.btn-row .btn { flex: 1 1 120px; }
+.lnk { text-decoration: underline; text-underline-offset: 2px; color: var(--ink); }
+.row { border-top: 1px solid var(--line); padding-top: 8px; display: grid; gap: 3px; }
+.row:first-child { border-top: 0; padding-top: 0; }
+.row .top { display: flex; justify-content: space-between; gap: 6px; align-items: baseline; }
+.row .nm { font-weight: 600; overflow-wrap: anywhere; }
+.chip { font: 600 14px/1.2 var(--body); padding: 1px 8px; border-radius: 6px; white-space: nowrap; background: var(--info-bg); color: var(--info-fg); border: 1px solid var(--info-bd); }
+.chip.ok { background: var(--ok-bg); color: var(--ok-fg); border-color: var(--ok-bd); }
+.chip.bad { background: var(--bad-bg); color: var(--bad-fg); border-color: var(--bad-bd); }
+.sub { color: var(--muted); }
+.val { display: flex; justify-content: space-between; gap: 6px; align-items: baseline; font-family: var(--mono); min-width: 0; flex-wrap: wrap; }
+.val > span:first-child { overflow-wrap: anywhere; min-width: 0; }
+.val .st { font-family: var(--body); color: var(--muted); }
+.field { display: grid; grid-template-columns: 100px minmax(0, 1fr); gap: 6px; align-items: center; }
+.field span:first-child { color: var(--muted); }
+.input { background: var(--sheet); border: 1px solid var(--line); border-radius: 10px; padding: 7px 10px; color: var(--muted); display: flex; justify-content: space-between; gap: 6px; }
+.note { color: var(--ink-2); background: var(--fill); border-radius: 10px; padding: 8px 10px; }
+.alert { background: var(--bad-bg); border: 1px solid var(--bad-bd); color: var(--ink); border-radius: 10px; padding: 10px; display: grid; gap: 8px; }
+.alert.warn { background: var(--card); border-color: var(--line-strong); }
+.bar { height: 6px; border-radius: 3px; background: var(--fill); overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--info-fg); }
+.sk { height: 10px; border-radius: 4px; background: var(--fill-2); }
+.pin { position: absolute; width: 20px; height: 20px; border-radius: 50%; background: var(--mark); color: var(--sheet); font: 600 11px/20px var(--mono); text-align: center; right: 2px; pointer-events: none; }
+.gmail { display: grid; gap: 6px; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+.gmail .pill { display: inline-flex; gap: 6px; align-items: center; border: 1px dashed var(--later); color: var(--later); border-radius: 999px; padding: 3px 9px; width: max-content; max-width: 100%; }
+.results { padding: 8px 12px; display: grid; gap: 6px; border-bottom: 1px solid var(--line); }
+.results div { display: flex; gap: 8px; align-items: center; }
+.results i { width: 14px; height: 14px; border: 1px solid var(--ink-2); border-radius: 4px; flex: none; }
+.results i.on { background: var(--ink-2); }
+:focus-visible { outline: 2px solid var(--mark); outline-offset: 2px; }
+footer { color: var(--muted); font-size: 13px; display: grid; gap: 6px; }
+</style>
+
+<div class="wrap">
+  <header class="intro">
+    <span class="eyebrow">Chrome side panel · review draft · 15 Oct 2026 · Deepline app tokens</span>
+    <h1>Deepline Assistant wireframes</h1>
+    <p class="lede">Every step a rep goes through, drawn at real panel width with real copy, in the Deepline app's own tokens: silver surfaces, monochrome buttons, colour only for status, Geist at 14 and 16 px. Each frame lists what to look at and the rubric criteria it is built to win. Dashed frames are later scope, shown so you can approve or cut them.</p>
+    <nav class="journey" aria-label="Journeys" id="jumps"></nav>
+  </header>
+
+  <section class="intro" aria-labelledby="dec">
+    <h2 id="dec">What we decided</h2>
+    <div class="decisions">
+      <div class="decision"><b>Existing data first</b><span>The page card shows rows already in your table before any paid button. A completed result turns the primary button into “Refresh”.</span></div>
+      <div class="decision"><b>Only my rows</b><span>The card and My table show your own lookups. No team rows, no CRM lookup before a run.</span></div>
+      <div class="decision"><b>Cost on the button, confirm above 25 credits</b><span>Buttons carry the estimate. Runs that may cost more than 25 credits ask once, inside the panel.</span></div>
+      <div class="decision"><b>Search import with a cap</b><span>Search and list pages import up to a number you set (default 25). Deepline fetches the results; the page is never read.</span></div>
+      <div class="decision"><b>Admin-chosen handoffs</b><span>Plays an admin marks as handoffs (“Create HubSpot contact”, “Add to lemlist”) appear on a finished row and link to the created record.</span></div>
+      <div class="decision"><b>URL and title only</b><span>No scripts on any page. The detected entity is shown in the card so a wrong match is visible.</span></div>
+    </div>
+  </section>
+
+  <section class="intro" aria-labelledby="rub">
+    <h2 id="rub">Scoring rubric</h2>
+    <p>From 122 Chrome Web Store reviews and 21 YouTube walkthroughs. Weights sum to 100. Each frame names the criteria it targets.</p>
+    <div class="rubric"><table>
+      <thead><tr><th>#</th><th>Criterion</th><th>Weight</th><th>What a 5 looks like</th></tr></thead>
+      <tbody id="rubricBody"></tbody>
+    </table></div>
+  </section>
+
+  <div id="sections" class="wrap" style="gap:48px"></div>
+
+  <footer>
+    <span>Sources: docs/research/jtbd-journey-rubric.md, docs/research/competitor-extensions.md, docs/research/zi-extension-analysis.md in jptoor/deepline-assistant.</span>
+    <span>Names, emails and numbers in the frames are examples.</span>
+  </footer>
+</div>
+
+<script>
+const RUBRIC = [
+  ["C1","Time and clicks to first useful result",14,"Panel open plus one click; result streams in under 5 s; usable for the next profile at once"],
+  ["C2","Shows existing data before spending",10,"Existing rows appear before any paid button, with age and source"],
+  ["C3","Data trust signal",10,"Per-field status, source, freshness, and a one-click refresh"],
+  ["C4","No separate login, clean auth recovery",9,"Uses the web session; one explicit, recoverable state when it fails"],
+  ["C5","Coexists with the page and other tools",9,"Works at 320 px, never injects, never needs a restart"],
+  ["C6","Cost transparency",9,"Cost on the button, no charge on a miss, spend shown after"],
+  ["C7","Act on the result in one step",9,"One click to an admin-preset destination, with a link back"],
+  ["C8","Bulk path for searches and lists",7,"Whole search handed off server-side with count, cost and progress"],
+  ["C9","Persistence and history",7,"Every lookup saved, searchable in the panel, survives closing it"],
+  ["C10","Error and empty-state recovery",6,"A specific state and one next action for each failure"],
+  ["C11","Correct page recognition, visibly",5,"Shows what was detected and lets the rep correct it"],
+  ["C12","LinkedIn and account safety",3,"URL and title only; nothing a site can detect"],
+  ["C13","Keyboard and copy affordances",2,"Shortcut to open and run; every value click-to-copy"],
+];
+const W = Object.fromEntries(RUBRIC.map(r => [r[0], r]));
+
+/* ---------- mock building blocks (grayscale) ---------- */
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const url = u => `<div class="urlbar"><span class="dots"><i></i><i></i><i></i></span><span class="u">${esc(u)}</span></div>`;
+const head = (who = "jai@acme.io") => `<div class="p-head"><b>Deepline Assistant</b><span class="who">${esc(who)}</span></div>`;
+const btn = (label, meta = "", cls = "") => `<div class="btn ${cls}"><span>${label}</span>${meta ? `<small>${meta}</small>` : ""}</div>`;
+const chip = (t, cls = "") => `<span class="chip ${cls}">${t}</span>`;
+const val = (v, st) => `<div class="val"><span>${v}</span><span class="st">${st}</span></div>`;
+const pin = (n, top) => `<span class="pin" style="top:${top}px">${n}</span>`;
+const device = (u, body) => `<div class="device" role="img" aria-label="Panel wireframe">${url(u)}<div class="p">${body}</div></div>`;
+const tableSec = rows => `<div class="box"><div class="kind"><b style="color:var(--ink)">My table</b><span class="lnk">Refresh</span></div><div class="input"><span>Filter by name, email, play</span></div>${rows}</div>`;
+
+const PROFILE = "linkedin.com/in/maya-okafor-4b1";
+const card = (kind, title, detected, inner) => `<div class="box"><div class="kind"><span>${kind}</span><u>${detected}</u></div><div class="ttl">${title}</div>${inner}</div>`;
+
+/* ---------- the steps ---------- */
+const SECTIONS = [
+ { id: "connect", label: "J1 Connect", title: "Connect", job: "Hygiene: don't make me log in again, don't lock me out.", frames: [
+  { t: "First open, signed out", crit: ["C4","C1"], mock: device("linkedin.com/in/maya-okafor-4b1", head("") + `
+    <div class="box"><div class="ttl">Connect your Deepline workspace</div>
+    <span class="sub">Plays run in Deepline. Results save to your table there. This panel reads only the page address and title.</span>
+    <div class="btns">${btn("Sign in to Deepline","opens a tab","pri")}${btn("Connect with device approval")}</div></div>
+    <div class="note">Already signed in at deepline.com? This panel connects by itself when that tab loads.</div>` + pin(1,62) + pin(2,150)),
+    notes: ["One button if you already use Deepline. The panel picks up the session from the deepline.com tab with no second login, which is ZoomInfo's top 1★ complaint.", "Device approval is the fallback for SSO users or browsers without a session. Same flow as `deepline auth register`."],
+    ask: "Should signed-out reps still see what page was detected, to show value before sign-in?" },
+  { t: "Waiting for device approval", crit: ["C4","C10"], mock: device("code.deepline.com/cli/claim/…", head("") + `
+    <div class="box"><div class="ttl">Approve this browser</div>
+    <span class="sub">Approve in the Deepline tab. This panel connects the moment you do.</span>
+    <div class="bar"><i style="width:40%"></i></div>
+    <div class="btn-row">${btn("Reopen approval tab")}${btn("Cancel")}</div></div>` + pin(1,96)),
+    notes: ["The panel polls while it is open and keeps polling after a reopen until the claim expires (24 h). No code to type."] },
+  { t: "Session expired or key revoked", crit: ["C4","C10"], mock: device(PROFILE, head("jai@acme.io") + `
+    <div class="alert warn"><b>You're signed out of Deepline</b><span>Your runs and table are safe. Sign in again to keep going.</span>${btn("Sign in to Deepline","","pri")}</div>
+    ${card("LinkedIn profile","Maya Okafor","from URL",`<span class="sub">Last saved: work email, phone · 3d ago</span>`)}` + pin(1,40) + pin(2,170)),
+    notes: ["A named state with one action, instead of a spinner or a blank panel.", "The page card stays visible and so does your cached last result, so you keep working context while signing back in."] },
+  { t: "Table can't be created", crit: ["C10"], mock: device(PROFILE, head() + `
+    <div class="alert"><b>Your table isn't set up yet</b><span>Deepline refused to create <code>assistant.records</code> in this workspace. An admin can run the setup once.</span><div class="btn-row">${btn("Copy setup command")}${btn("Retry")}</div></div>`),
+    notes: ["First-connect failure states the exact cause and a fix an admin can paste. The command is the three CREATE IF NOT EXISTS statements."] },
+ ]},
+ { id: "person", label: "J2 Person", title: "Person: LinkedIn profile or Sales Navigator lead", job: "Reach this person. Don't pay twice. Trust it before I send.", frames: [
+  { t: "New person, nothing saved yet", crit: ["C1","C6","C11","C12"], mock: device(PROFILE, head() + card("LinkedIn profile","Maya Okafor","maya-okafor-4b1 · from URL", `
+    <span class="sub">Not in your table yet</span>
+    <div class="btns">${btn("Find email + phone","~3 credits · free if no match","pri")}${btn("Job change check","1 credit")}${btn("Research for call","~2 credits")}</div>
+    <span class="lnk">More plays (6)</span>`) + pin(1,58) + pin(2,96) + pin(3,140)),
+    notes: ["Shows exactly what was detected: profile slug, read from the URL, with the name from the tab title. A wrong match is visible before anything is spent.", "Plain statement that nothing is saved yet, so the primary button is safe to press.", "Cost on every button, including the no-charge-on-miss rule. Pinned plays first, at most four, then “More plays”."],
+    ask: "Do you want a per-rep monthly credit counter in the header, or only per-button estimates?" },
+  { t: "Running", crit: ["C1","C5","C9"], mock: device(PROFILE, head() + card("LinkedIn profile","Maya Okafor","maya-okafor-4b1 · from URL", `
+    <div class="row"><div class="top"><span class="nm">Find email + phone</span>${chip("running · 6 s")}</div><div class="sk" style="width:70%"></div><div class="sk" style="width:45%"></div></div>
+    <div class="btns">${btn("Running Find email + phone…","","off")}${btn("Job change check","1 credit")}</div>`) +
+    `<div class="note">You can open the next profile. This run keeps going and lands in My table.</div>` + pin(1,96) + pin(2,214)),
+    notes: ["Row appears at once with elapsed time; skeleton lines show where the email and phone will land.", "The rep can move on. The row was written before the run started, so closing the panel loses nothing."] },
+  { t: "Result with trust signals and handoff", crit: ["C3","C7","C13","C6"], mock: device(PROFILE, head() + card("LinkedIn profile","Maya Okafor","maya-okafor-4b1 · from URL", `
+    <div class="row"><div class="top"><span class="nm">Find email + phone</span>${chip("done · 3 credits","ok")}</div>
+    ${val("maya@northwind.io","verified · LeadMagic · today")}
+    ${val("+1 415 555 0142","mobile · FullEnrich · today")}
+    <span class="lnk">Wrong or bounced? Refresh</span></div>
+    <div class="btn-row">${btn("Create HubSpot contact")}${btn("Add to Q4 lemlist")}</div>`) + pin(1,90) + pin(2,150) + pin(3,186)),
+    notes: ["Every value carries status, provider and date. Click to copy.", "Bounced or wrong-number recovery is one link that re-runs with a forced refresh.", "Admin-chosen handoff plays sit on the finished row. After a handoff the button becomes “Open in HubSpot”."],
+    ask: "Should a handoff be allowed when the email is unverified, or disabled with a reason?" },
+  { t: "Returning to a person you already enriched", crit: ["C2","C6"], mock: device(PROFILE, head() + card("LinkedIn profile","Maya Okafor","maya-okafor-4b1 · from URL", `
+    <div class="row"><div class="top"><span class="nm">Find email + phone</span>${chip("done · 12d ago","ok")}</div>
+    ${val("maya@northwind.io","verified 12d ago")}${val("+1 415 555 0142","mobile")}</div>
+    <div class="btns">${btn("Refresh email + phone","~3 credits")}${btn("Open in HubSpot","contact created 12d ago")}</div>`) + pin(1,76) + pin(2,150)),
+    notes: ["Existing data leads. Nothing is primary-styled because the rep already has what they came for.", "Re-running is labeled “Refresh” with its cost, so paying twice is a deliberate choice."] },
+  { t: "No match", crit: ["C10","C6"], mock: device(PROFILE, head() + card("LinkedIn profile","Maya Okafor","maya-okafor-4b1 · from URL", `
+    <div class="row"><div class="top"><span class="nm">Find email + phone</span>${chip("no match · 0 credits","bad")}</div>
+    <span class="sub">6 providers checked. No work email or phone found.</span></div>
+    <div class="btns">${btn("Try personal email","~1 credit")}${btn("Research for call","~2 credits")}</div>`) + pin(1,76)),
+    notes: ["A miss says how hard it looked, confirms no charge, and offers the next sensible play. Failed runs get the same shape with the reason and a Retry."] },
+  { t: "Sales Navigator lead", crit: ["C11","C12"], mock: device("linkedin.com/sales/lead/ACwAAB3k…", head() + card("Sales Navigator lead","Sam Lee","lead id · from URL", `
+    <span class="note">Sales Navigator hides the public profile. The play finds it from the name first.</span>
+    <div class="btns">${btn("Find email + phone","~4 credits","pri")}</div>`) + pin(1,94)),
+    notes: ["We never relabel a Sales Navigator URL as a public profile. The extra step and its cost are stated up front."] },
+ ]},
+ { id: "company", label: "J3 Company", title: "Company: LinkedIn company page or any website", job: "Find the right people at this account. Prepare for the conversation.", frames: [
+  { t: "Company website", crit: ["C1","C11","C2"], mock: device("northwind.io/pricing", head() + card("Company website","northwind.io","domain · from URL", `
+    <div class="field"><span>HQ</span><span>San Francisco, CA</span></div>
+    <div class="field"><span>Employees</span><span>210</span></div>
+    <div class="field"><span>Saved</span><span>Company profile · 2d ago</span></div>
+    <div class="btns">${btn("Find VP Sales + RevOps","~6 credits","pri")}${btn("Refresh company profile","1 credit")}</div>`) + pin(1,58) + pin(2,96)),
+    notes: ["Domain from the URL; tool sites (Google, Gmail, GitHub…) are skipped so the card never claims a company that isn't there.", "HQ address and employee count stay visible. Their removal triggered ZoomInfo's July wave of 1★ reviews."],
+    ask: "Which roles should the default “find people at this company” play target?" },
+  { t: "LinkedIn company page", crit: ["C11"], mock: device("linkedin.com/company/northwind", head() + card("Company","Northwind","northwind · from URL", `
+    <div class="btns">${btn("Find VP Sales + RevOps","~6 credits","pri")}${btn("Company profile","1 credit")}</div>`)),
+    notes: ["Same plays as the website frame, keyed on the company slug instead of the domain."] },
+ ]},
+ { id: "search", label: "J4 Search", title: "Search or list", job: "Turn a search into a list, without clicking through pages.", frames: [
+  { t: "Import with a cap", crit: ["C8","C6","C12"], mock: device("linkedin.com/sales/search/people?query=…", head() + card("Sales Navigator search","VP Sales · SaaS · 51–200","search URL · from URL", `
+    <div class="field"><span>Import up to</span><span class="input" style="padding:3px 8px"><span style="color:var(--ink)">25</span><span>people</span></span></div>
+    <div class="btns">${btn("Import 25 with Find email + phone","up to ~75 credits","pri")}</div>
+    <span class="sub">Deepline fetches the results. Nothing is read from this page.</span>`) + pin(1,96) + pin(2,134)),
+    notes: ["Cap defaults to 25; the play sets the maximum. The estimate scales with the number.", "States plainly that the server does the fetching, which is the LinkedIn-safe and faster path."] },
+  { t: "Over 25 credits: confirm in the panel", crit: ["C6"], mock: device("linkedin.com/sales/search/people?query=…", head() + card("Sales Navigator search","VP Sales · SaaS · 51–200","search URL · from URL", `
+    <div class="alert warn"><b>This import may use up to 300 credits</b><span>100 people × ~3 credits. You're charged only for matches.</span><div class="btn-row">${btn("Import 100","","pri")}${btn("Cancel")}</div></div>`) + pin(1,90)),
+    notes: ["The threshold you chose: anything above 25 credits asks once, inline, never as a browser dialog."],
+    ask: "Is 25 the right threshold, and should admins be able to change it per workspace?" },
+  { t: "Import in progress", crit: ["C8","C9","C1"], mock: device("linkedin.com/feed/", head() + `<div class="box"><div class="kind"><span>Running</span></div>
+    <div class="row"><div class="top"><span class="nm">VP Sales · SaaS · 51–200</span>${chip("38 / 100")}</div><div class="bar"><i style="width:38%"></i></div><span class="sub">31 emails · 22 phones so far · 87 credits</span></div></div>` + pin(1,70)),
+    notes: ["Progress follows the rep to any page. Each person found becomes a row in My table."] },
+ ]},
+ { id: "crm", label: "J5 CRM", title: "CRM record", job: "Hand it off without copy-paste.", frames: [
+  { t: "Salesforce contact", crit: ["C11","C7"], mock: device("acme.lightning.force.com/lightning/r/Contact/003Ak…", head() + card("CRM record","Contact 003Ak00000ABCDe","Salesforce · from URL", `
+    <div class="btns">${btn("Fill missing email + phone","~3 credits","pri")}${btn("Job change check","1 credit")}</div>`) + pin(1,58)),
+    notes: ["The record name isn't in the URL, so the card shows the object and id until a play returns the name. HubSpot records work the same way."] },
+ ]},
+ { id: "table", label: "J6 My table", title: "My table", job: "Find who I looked up last week.", frames: [
+  { t: "History", crit: ["C9","C13","C3"], mock: device("linkedin.com/feed/", head() + tableSec(`
+    <div class="row"><div class="top"><span class="nm">Maya Okafor</span>${chip("done","ok")}</div><span class="sub">Find email + phone · 2m ago</span>${val("maya@northwind.io","verified")}</div>
+    <div class="row"><div class="top"><span class="nm">VP Sales · SaaS · 51–200</span>${chip("38 / 100")}</div><span class="sub">Search import · 5m ago</span></div>
+    <div class="row"><div class="top"><span class="nm">northwind.io</span>${chip("done","ok")}</div><span class="sub">Company profile · 2d ago</span></div>
+    <div class="row"><div class="top"><span class="nm">Sam Lee</span>${chip("no match","bad")}</div><span class="sub">Find email + phone · 3d ago</span></div>`) + pin(1,64) + pin(2,108)),
+    notes: ["Filter across name, email and play. Clicking a name reopens its page in the current tab.", "Newest first, with the same status chips as the page card."],
+    ask: "Should My table offer “Export CSV”, or is the workspace table (SQL, plays) enough?" },
+ ]},
+ { id: "reopen", label: "J7 Reopen", title: "Closed mid-run", job: "Don't lose my work.", frames: [
+  { t: "Reopening after runs finished", crit: ["C9","C10"], mock: device("linkedin.com/feed/", head() + `<div class="note">2 runs finished while the panel was closed.</div>` + tableSec(`
+    <div class="row"><div class="top"><span class="nm">Priya Shah</span>${chip("done","ok")}</div><span class="sub">Find email + phone · finished 4m ago</span></div>
+    <div class="row"><div class="top"><span class="nm">Leo Martins</span>${chip("failed","bad")}</div><span class="sub">Provider timeout · 0 credits</span><span class="lnk">Retry</span></div>`) + pin(1,40) + pin(2,170)),
+    notes: ["On open, every pending row is checked against Deepline and finished. A one-line summary says what changed.", "Failures keep their reason and a Retry; retry starts only that run."] },
+ ]},
+ { id: "idle", label: "Other pages", title: "Unsupported page", job: "Stay out of my way.", frames: [
+  { t: "Page with nothing to act on", crit: ["C5","C10"], mock: device("mail.google.com/mail/u/0/#inbox", head() + `
+    <div class="box"><span class="sub">Open a LinkedIn profile, company, Sales Navigator lead, list or search, a Salesforce or HubSpot record, or any company website.</span></div>` + tableSec(`<div class="row"><div class="top"><span class="nm">Maya Okafor</span>${chip("done","ok")}</div><span class="sub">2m ago</span></div>`)),
+    notes: ["Says which pages work, and My table stays available so the panel is still useful."] },
+ ]},
+ { id: "later", label: "Later", later: true, title: "Later scope", job: "Shown so you can approve or cut them.", frames: [
+  { t: "Gmail thread presence", later: true, crit: ["C2","C7"], mock: `<div class="device" role="img" aria-label="Gmail wireframe">${url("mail.google.com/mail/u/0/#inbox/FMfcg…")}<div class="gmail"><b>Re: pilot pricing</b><span class="sub">maya@northwind.io</span><span class="pill">● Maya Okafor · in your table · 12d</span></div><div class="p">${head()}${card("Email thread","maya@northwind.io","sender · read on click", `<div class="btns">${btn("Log reply to HubSpot")}${btn("Research for call","~2 credits")}</div>`)}</div></div>`,
+    notes: ["The address is in the page, not the URL, so this needs a Gmail-only permission and a read-on-click design. It breaks the URL-only rule for one site."],
+    ask: "Worth the extra permission for v1.1, or keep the URL-only promise?" },
+  { t: "Pick people on a results page", later: true, crit: ["C8"], mock: `<div class="device" role="img" aria-label="Selection wireframe">${url("linkedin.com/sales/search/people?query=…")}<div class="results"><div><i class="on"></i>Maya Okafor · VP Sales</div><div><i></i>Sam Lee · Head of RevOps</div><div><i class="on"></i>Priya Shah · CRO</div></div><div class="p">${head()}${btn("Find email + phone for 2 selected","~6 credits","pri")}</div></div>`,
+    notes: ["Checkboxes on LinkedIn would mean injecting into the page, which LinkedIn detects. Capped search import covers the volume case without it."],
+    ask: "Cut, or keep for a later opt-in mode?" },
+ ]},
+];
+
+/* ---------- render ---------- */
+document.getElementById("rubricBody").innerHTML = RUBRIC.map(r => `<tr><td>${r[0]}</td><td>${esc(r[1])}</td><td>${r[2]}</td><td>${esc(r[3])}</td></tr>`).join("");
+document.getElementById("jumps").innerHTML = SECTIONS.map(s => `<a href="#${s.id}" class="${s.later ? "later" : ""}">${esc(s.label)}</a>`).join("");
+let n = 0;
+document.getElementById("sections").innerHTML = SECTIONS.map(s => `
+  <section class="section" id="${s.id}" aria-labelledby="h-${s.id}">
+    <div class="section-head"><span class="eyebrow">${esc(s.label)}</span><h2 id="h-${s.id}">${esc(s.title)}</h2><p class="job">${esc(s.job)}</p></div>
+    ${s.frames.map(f => { n++; const pts = f.crit.reduce((a, c) => a + W[c][2], 0); return `
+    <article class="frame ${f.later ? "is-later" : ""}">
+      <div>${f.mock}</div>
+      <div class="notes">
+        <div class="frame-title"><span class="step">Step ${n}</span><h3>${esc(f.t)}</h3>${f.later ? `<span class="tag-later">Later</span>` : ""}</div>
+        <ol>${f.notes.map(x => `<li><span>${esc(x).replace(/`([^`]+)`/g, "<code>$1</code>")}</span></li>`).join("")}</ol>
+        <div class="crit" aria-label="Rubric criteria targeted">${f.crit.map(c => `<span title="${esc(W[c][1])}"><b>${c}</b> ${esc(W[c][1])} · ${W[c][2]}</span>`).join("")}</div>
+        ${f.ask ? `<p class="ask"><b>For you:</b> ${esc(f.ask)}</p>` : ""}
+      </div>
+    </article>`; }).join("")}
+  </section>`).join("");
+</script>
