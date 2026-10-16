@@ -174,7 +174,7 @@ footer { color: var(--muted); font-size: 13px; display: grid; gap: 6px; }
       <div class="decision"><b>Nothing technical for reps</b><span>No keys, settings, play names to set up, or URLs. The central team chooses the actions and handoffs once in Deepline; reps just click.</span></div>
       <div class="decision"><b>One-step sign-in</b><span>Installing opens Deepline sign-in. If the rep is already signed in, the panel is connected with no steps at all.</span></div>
       <div class="decision"><b>What you have, then what to do</b><span>Saved results show before any paid action. Once a result is in, the pinned action becomes the handoff or Copy email, never a second paid lookup.</span></div>
-      <div class="decision"><b>Credits on the button</b><span>Every action shows its cost. Anything over 25 credits asks once in the panel. Misses are free.</span></div>
+      <div class="decision"><b>Credits on the button</b><span>Every action shows its cost. Anything over 25 credits asks once in the panel. No charge.</span></div>
       <div class="decision"><b>Only the address and title</b><span>The panel reads the page address and tab title, nothing else, so LinkedIn sees nothing. Deepline does every lookup.</span></div>
     </dl>
   </section>
@@ -228,7 +228,7 @@ const tableSec = rows => `<div class="box"><div class="kind"><b style="color:var
 const PROFILE = "linkedin.com/in/maya-okafor-4b1";
 const card = (kind, title, detected, inner = "") => `<div class="box"><div class="kind"><span>${kind}</span><u>${detected}</u></div><div class="ttl">${title}</div>${inner}</div>`;
 const cta = (label, meta = "", off = false) => `<div class="ctabar">${btn(label, meta, off ? "off" : "")}</div>`;
-const more = (items) => `<div class="more"><span class="sub">Other actions</span>${items.map(([l, m]) => `<div class="lk"><span class="lnk">${l}</span><small>${m}</small></div>`).join("")}</div>`;
+const more = (items) => `<div class="more"><span class="sub">More</span>${items.map(([l, m]) => `<div class="lk"><span class="lnk">${l}</span><small>${m}</small></div>`).join("")}</div>`;
 const panel = (u, body, ctaHtml) => `<div class="device" role="img" aria-label="Panel wireframe">${url(u)}<div class="p">${body}</div>${ctaHtml}</div>`;
 const browser = (u, body) => `<div class="device" role="img" aria-label="Browser tab wireframe">${url(u)}<div class="p">${body}</div></div>`;
 
@@ -238,17 +238,17 @@ const SECTIONS = [
     mock: browser("code.deepline.com/sign-in", `<div class="ttl">Sign in to Deepline</div><span class="sub">Opened automatically when you added the extension.</span>${btn("Continue with Google","","pri")}${btn("Email me a sign-in link")}`),
     goal: "Get set up without thinking about it.", needs: "Nothing new: the same Deepline account the team already uses.", cta: "Continue with Google (in the Deepline tab)", sys: "Installing opens this tab. Signing in here connects the panel; there is no second login." },
   { t: "Already signed in", crit: ["C4","C1"],
-    mock: panel(PROFILE, head() + card("LinkedIn profile","Maya Okafor","read from the address", `<span class="sub">Nothing saved for Maya yet.</span>`), cta("Find email + phone","~3 credits")),
+    mock: panel(PROFILE, head() + card("LinkedIn profile","Maya Okafor","read from the address", `<span class="sub">Not looked up yet</span>`), cta("Find email + phone","~3 credits")),
     goal: "Start working immediately.", needs: "That it's connected (their email, top right) and who is on screen.", cta: "Find email + phone · ~3 credits", sys: "Zero setup steps. The panel found the Deepline session and the team's actions." },
   { t: "Not signed in yet", crit: ["C4"],
-    mock: panel(PROFILE, head("") + `<div class="box"><div class="ttl">Sign in to start</div><span class="sub">Use the Deepline account your team uses. This panel connects by itself once you're signed in.</span><span class="lnk">Trouble signing in? Approve this browser instead</span></div>`, cta("Sign in to Deepline")),
+    mock: panel(PROFILE, head("") + `<div class="box"><div class="ttl">Sign in to start</div><span class="sub">Use your team's Deepline account. You only do this once.</span><span class="lnk">Trouble signing in? Approve this browser</span></div>`, cta("Sign in to Deepline")),
     goal: "Get in.", needs: "One way in, plus a way out if SSO blocks it.", cta: "Sign in to Deepline", sys: "Opens the sign-in tab; the panel connects the moment the tab finishes signing in." },
   { t: "Signed out later", crit: ["C4","C10"],
     mock: panel(PROFILE, head("") + `<div class="alert warn"><b>You're signed out of Deepline</b><span>Your saved lookups are safe.</span></div>` + card("LinkedIn profile","Maya Okafor","read from the address", `<span class="sub">Saved 3d ago: email, phone</span>`), cta("Sign in again")),
     goal: "Get back to work without losing anything.", needs: "That nothing was lost.", cta: "Sign in again", sys: "Saved results stay visible; nothing re-runs." },
   { t: "Team setup isn't done", crit: ["C10"],
-    mock: panel(PROFILE, head() + `<div class="box"><div class="ttl">Your team hasn't turned this on yet</div><span class="sub">Deepline couldn't finish setting up for your workspace. Send this to whoever manages Deepline on your team.</span><span class="lnk">Try again</span></div>`, cta("Copy a note for your admin")),
-    goal: "Get unblocked without understanding why.", needs: "Who can fix it.", cta: "Copy a note for your admin", sys: "Copies a plain-English request that names the one setup step." },
+    mock: panel(PROFILE, head() + `<div class="box"><div class="ttl">Not set up yet</div><span class="sub">Ask your Deepline admin to turn this on.</span><span class="lnk">Try again</span></div>`, cta("Copy note for admin")),
+    goal: "Get unblocked without understanding why.", needs: "Who can fix it.", cta: "Copy note for admin", sys: "Copies a plain-English request that names the one setup step." },
  ]},
  { id: "admin", label: "Central team", title: "One-time setup in Deepline", job: "The central team decides what reps see. Reps never do this.", frames: [
   { t: "Choose actions and handoffs", crit: ["C7","C6"],
@@ -262,19 +262,19 @@ const SECTIONS = [
  ]},
  { id: "person", label: "Person", title: "A LinkedIn profile or Sales Navigator lead", job: "Reach this person. Don't pay twice. Trust it before I send.", frames: [
   { t: "New person", crit: ["C1","C6","C11","C12"],
-    mock: panel(PROFILE, head() + card("LinkedIn profile","Maya Okafor","read from the address", `<span class="sub">Nothing saved for Maya yet.</span>` + more([["Job change check","~1 credit"]])), cta("Find email + phone","~3 credits")),
+    mock: panel(PROFILE, head() + card("LinkedIn profile","Maya Okafor","read from the address", `<span class="sub">Not looked up yet</span>` + more([["Job change check","~1 credit"]])), cta("Find email + phone","~3 credits")),
     goal: "Get a way to reach Maya.", needs: "That it's the right person, that nothing is saved yet, the cost.", cta: "Find email + phone · ~3 credits", sys: "Sends Maya's profile address to the team's action; checks every provider in turn; misses are free." },
   { t: "Working", crit: ["C1","C5","C9"],
-    mock: panel(PROFILE, head() + card("LinkedIn profile","Maya Okafor","read from the address", `<div class="row"><div class="top"><span class="nm">Find email + phone</span>${chip("working")}</div><div class="sk" style="width:70%"></div><div class="sk" style="width:45%"></div></div><span class="sub">You can open the next profile. This keeps going.</span>`), cta("Working on it…","",true)),
-    goal: "Keep moving.", needs: "That it's happening and that leaving is safe.", cta: "Working on it… (disabled)", sys: "Saved as in progress before it starts, so closing the panel loses nothing." },
+    mock: panel(PROFILE, head() + card("LinkedIn profile","Maya Okafor","read from the address", `<div class="row"><div class="top"><span class="nm">Find email + phone</span>${chip("working")}</div><div class="sk" style="width:70%"></div><div class="sk" style="width:45%"></div></div><span class="sub">You can open the next profile. This keeps going.</span>`), cta("Working…","",true)),
+    goal: "Keep moving.", needs: "That it's happening and that leaving is safe.", cta: "Working… (disabled)", sys: "Saved as in progress before it starts, so closing the panel loses nothing." },
   { t: "Found, with a handoff", crit: ["C3","C7","C13"],
-    mock: panel(PROFILE, head() + card("LinkedIn profile","Maya Okafor","read from the address", `<div class="row"><div class="top"><span class="nm">Find email + phone</span>${chip("done","ok")}</div>${val("maya@northwind.io","verified · today")}${val("+1 415 555 0142","mobile · today")}<span class="lnk">Wrong or bounced? Look up again</span></div>` + more([["Copy email",""],["Add to Q4 lemlist","free"]])), cta("Add to HubSpot","free")),
-    goal: "Use the result without copy-paste.", needs: "The email and phone, whether to trust them, where they can go.", cta: "Add to HubSpot", sys: "Runs the team's HubSpot handoff with Maya's details; the row then reads 'Add to HubSpot: done' with a link." },
+    mock: panel(PROFILE, head() + card("LinkedIn profile","Maya Okafor","read from the address", `<div class="row"><div class="top"><span class="nm">Find email + phone</span>${chip("done","ok")}</div>${val("maya@northwind.io","verified · today")}${val("+1 415 555 0142","mobile · today")}<span class="lnk">Wrong or bounced? Find email + phone again</span></div>` + more([["Copy email",""],["Add to Q4 lemlist","free"]])), cta("Add to HubSpot","free")),
+    goal: "Use the result without copy-paste.", needs: "The email and phone, whether to trust them, where they can go.", cta: "Add to HubSpot", sys: "Shown only when the workspace has HubSpot connected. Runs the team's HubSpot handoff with Maya's details; the row then reads 'Add to HubSpot: done' with a link." },
   { t: "Found, no handoff set up", crit: ["C3","C13"],
-    mock: panel(PROFILE, head() + card("LinkedIn profile","Maya Okafor","read from the address", `<div class="row"><div class="top"><span class="nm">Find email + phone</span>${chip("done · 12d ago","ok")}</div>${val("maya@northwind.io","verified 12d ago")}${val("+1 415 555 0142","mobile")}</div>` + more([["Look up again","~3 credits"],["Job change check","~1 credit"]])), cta("Copy email","maya@northwind.io")),
+    mock: panel(PROFILE, head() + card("LinkedIn profile","Maya Okafor","read from the address", `<div class="row"><div class="top"><span class="nm">Find email + phone</span>${chip("done · 12d ago","ok")}</div>${val("maya@northwind.io","verified 12d ago")}${val("+1 415 555 0142","mobile")}</div>` + more([["Find email + phone again","~3 credits"],["Job change check","~1 credit"]])), cta("Copy email","maya@northwind.io")),
     goal: "Get the email into my email.", needs: "The saved value and how old it is.", cta: "Copy email", sys: "Nothing is re-bought. Looking up again is a deliberate, priced choice." },
   { t: "Nothing found", crit: ["C10","C6"],
-    mock: panel(PROFILE, head() + card("LinkedIn profile","Maya Okafor","read from the address", `<div class="row"><div class="top"><span class="nm">Find email + phone</span>${chip("nothing found","bad")}</div><span class="sub">Every provider checked. Misses are free.</span></div>`), cta("Job change check","~1 credit")),
+    mock: panel(PROFILE, head() + card("LinkedIn profile","Maya Okafor","read from the address", `<div class="row"><div class="top"><span class="nm">Find email + phone</span>${chip("nothing found","bad")}</div><span class="sub">Every provider checked. No charge.</span></div>`), cta("Job change check","~1 credit")),
     goal: "Know what to try next.", needs: "That it really looked, and that it was free.", cta: "The team's next action (here, Job change check)", sys: "No charge for the miss." },
   { t: "Sales Navigator lead", crit: ["C11","C12"],
     mock: panel("linkedin.com/sales/lead/ACwAAB3k…", head() + card("Sales Navigator lead","Sam Lee","read from the address", `<span class="sub">Sales Navigator hides the public profile, so this finds it from the name first.</span>`), cta("Find email + phone","~4 credits")),
@@ -290,7 +290,7 @@ const SECTIONS = [
     mock: panel("linkedin.com/sales/search/people?query=…", head() + card("Sales Navigator search","VP Sales · SaaS · 51–200","read from the address", `<div class="field"><span>How many</span><span class="input" style="padding:3px 8px"><span style="color:var(--ink)">25</span><span>people</span></span></div><span class="sub">Deepline fetches the results. Nothing is read from this page.</span>`), cta("Import and enrich: 25 people","up to 75 credits")),
     goal: "Turn this search into a list.", needs: "How many, the cost, that LinkedIn isn't touched.", cta: "Import and enrich: 25 people · up to 75 credits", sys: "Hands the search address to the team's import; each person becomes a saved lookup." },
   { t: "Over 25 credits", crit: ["C6"],
-    mock: panel("linkedin.com/sales/search/people?query=…", head() + card("Sales Navigator search","VP Sales · SaaS · 51–200","read from the address", `<div class="alert warn"><b>This may use up to 300 credits</b><span>You're only charged for what's found.</span><span class="lnk">Cancel</span></div>`), cta("Go ahead","up to 300 credits")),
+    mock: panel("linkedin.com/sales/search/people?query=…", head() + card("Sales Navigator search","VP Sales · SaaS · 51–200","read from the address", `<div class="alert warn"><b>Up to 300 credits</b><span>You only pay for what's found.</span><span class="lnk">Cancel</span></div>`), cta("Go ahead","up to 300 credits")),
     goal: "Avoid a surprise bill.", needs: "The worst-case cost.", cta: "Go ahead · up to 300 credits", sys: "The confirm is part of the panel, never a pop-up." },
   { t: "Importing", crit: ["C8","C9"],
     mock: panel("linkedin.com/feed/", head() + `<div class="box"><div class="row"><div class="top"><span class="nm">VP Sales · SaaS · 51–200</span>${chip("38 of 100")}</div><div class="bar"><i style="width:38%"></i></div><span class="sub">31 emails, 22 phones so far</span></div></div>`, cta("Search your lookups")),
@@ -303,7 +303,7 @@ const SECTIONS = [
  ]},
  { id: "lookups", label: "Your lookups", title: "Everyone you've looked up", job: "Find who I looked up last week.", frames: [
   { t: "Any other page", crit: ["C9","C13","C5"],
-    mock: panel("mail.google.com/mail/u/0/#inbox", head() + `<div class="box"><span class="sub">Open a LinkedIn profile, company or search, a Sales Navigator lead or list, a CRM record, or any company website.</span></div>` + tableSec(`<div class="row"><div class="top"><span class="nm">Maya Okafor</span>${chip("done","ok")}</div><span class="sub">Find email + phone · 2m ago</span>${val("maya@northwind.io","verified")}</div><div class="row"><div class="top"><span class="nm">Priya Shah</span>${chip("done","ok")}</div><span class="sub">Finished while the panel was closed</span></div><div class="row"><div class="top"><span class="nm">Leo Martins</span>${chip("didn't finish","bad")}</div><span class="sub">A provider timed out. Not charged.</span></div>`), cta("Search your lookups")),
+    mock: panel("mail.google.com/mail/u/0/#inbox", head() + `<div class="box"><span class="sub">Open a LinkedIn profile, company or search, a CRM record, or a company website.</span></div>` + tableSec(`<div class="row"><div class="top"><span class="nm">Maya Okafor</span>${chip("done","ok")}</div><span class="sub">Find email + phone · 2m ago</span>${val("maya@northwind.io","verified")}</div><div class="row"><div class="top"><span class="nm">Priya Shah</span>${chip("done","ok")}</div><span class="sub">Finished while the panel was closed</span></div><div class="row"><div class="top"><span class="nm">Leo Martins</span>${chip("didn't finish","bad")}</div><span class="sub">A provider timed out. Not charged.</span></div>`), cta("Search your lookups")),
     goal: "Find someone again.", needs: "Names, emails, what's done and what failed.", cta: "Search your lookups", sys: "Every lookup is saved in Deepline; anything that finished while closed is filled in on open." },
  ]},
  { id: "later", label: "Later", later: true, title: "Later", job: "Shown so you can approve or cut it. Gmail is out of scope for now.", frames: [

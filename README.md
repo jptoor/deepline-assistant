@@ -14,7 +14,7 @@ Everything you look up is saved under **Your lookups**, so you can find it again
 
 ## For the central team
 
-Run the **Deepline Assistant setup** play once in the Deepline app (`examples/assistant-setup.play.ts`). It creates the lookups table and saves what reps see:
+Run the built-in `prebuilt/deepline-assistant-setup` play once in the Deepline app. It creates the lookups table and saves what reps see:
 
 - which actions appear on person, company, search and CRM pages, in order (the first is the pinned button);
 - which handoffs (add to CRM, add to sequence) appear on a finished result;

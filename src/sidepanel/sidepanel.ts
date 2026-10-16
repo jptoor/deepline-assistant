@@ -4,7 +4,7 @@
  *  flight are tracked by the rep's rows, so closing the panel loses nothing. */
 import { fetchSession, keySession, pollClaim, registerDevice, signInUrl, isDeeplineTab, type Connection, type PendingClaim } from "../background/auth";
 import { KIND_GROUP, KIND_LABEL, pageContext, type PageContext } from "../shared/context";
-import { AuthError, DEFAULT_BASE_URL, TERMINAL, costLabel, inputFor, listPlays, maxCredits, normalizeBaseUrl, pollRun, query, startRun, type Credential, type PlaySummary } from "../shared/deepline";
+import { AuthError, DEFAULT_BASE_URL, TERMINAL, connectedProviders, costLabel, inputFor, listPlays, playAvailable, maxCredits, normalizeBaseUrl, pollRun, query, startRun, type Credential, type PlaySummary } from "../shared/deepline";
 import { CONFIG_SQL, DEFAULT_CONFIG, SETUP_SQL, finishSql, listSql, parseConfig, startSql, type AssistantConfig, type RecordRow } from "../shared/records";
 
 declare const __EXTENSION_VERSION__: string;
@@ -51,6 +51,8 @@ const state = {
   needsSetup: false,
   config: DEFAULT_CONFIG as AssistantConfig,
   plays: [] as PlaySummary[],
+  /** Integrations the workspace has connected; null until known (then nothing is hidden). */
+  connected: null as Set<string> | null,
   ctx: pageContext(undefined),
   cap: DEFAULT_CONFIG.default_import_cap,
   rows: [] as RecordRow[],
@@ -63,11 +65,11 @@ const state = {
 function friendly(e: unknown): string {
   const msg = e instanceof Error ? e.message : String(e);
   console.warn("[deepline-assistant]", msg);
-  if (e instanceof AuthError) return "You're signed out of Deepline. Sign in again to keep going.";
-  if (/credit|balance|insufficient|402/i.test(msg)) return "Your team is out of Deepline credits. Ask your admin to add more.";
-  if (/429|concurrency|too many/i.test(msg)) return "Deepline is busy with your other lookups. Try again in a few seconds.";
-  if (/Failed to fetch|NetworkError|network/i.test(msg)) return "Can't reach Deepline. Check your connection and try again.";
-  return "That didn't work. Try again, and tell your Deepline admin if it keeps happening.";
+  if (e instanceof AuthError) return "Signed out. Sign in to continue.";
+  if (/credit|balance|insufficient|402/i.test(msg)) return "Out of credits. Ask your admin to add more.";
+  if (/429|concurrency|too many/i.test(msg)) return "Busy. Try again in a moment.";
+  if (/Failed to fetch|NetworkError|network/i.test(msg)) return "Can't reach Deepline. Check your connection.";
+  return "Something went wrong. Try again.";
 }
 function showError(e: unknown) {
   const box = $("error");
@@ -79,7 +81,7 @@ function showError(e: unknown) {
 const rowKey = (r: Pick<RecordRow, "entity_key" | "play_key">) => `${r.entity_key}\u0000${r.play_key}`;
 /** A configured play, with the team's rep-facing label applied. */
 function findPlay(key: string): PlaySummary | undefined {
-  const p = state.plays.find((x) => x.playKey === key || x.playKey === `prebuilt/${key}`);
+  const p = state.plays.find((x) => (x.playKey === key || x.playKey === `prebuilt/${key}`) && playAvailable(x, state.connected));
   const label = state.config.labels[key] ?? (p && state.config.labels[p.playKey]);
   return p && label ? { ...p, displayName: label } : p;
 }
@@ -88,7 +90,7 @@ function ago(iso: string): string {
   const s = Math.max(0, (Date.now() - Date.parse(iso)) / 1000);
   return s < 60 ? "just now" : s < 3600 ? `${Math.floor(s / 60)}m ago` : s < 86400 ? `${Math.floor(s / 3600)}h ago` : `${Math.floor(s / 86400)}d ago`;
 }
-const STATUS_LABEL: Record<string, string> = { queued: "starting", running: "working", waiting: "working", completed: "done", failed: "didn't finish", cancelled: "stopped" };
+const STATUS_LABEL: Record<string, string> = { queued: "starting", running: "working", waiting: "working", completed: "done", failed: "failed", cancelled: "stopped" };
 
 /* ---------------------------------------------------------------- sign-in */
 
@@ -114,7 +116,11 @@ async function connect(): Promise<void> {
   }
   $("who").textContent = state.owner ?? "";
   if (!state.cred) return void (s.claim ? waitForClaim(s.claim) : undefined);
-  await Promise.all([setUp(s), listPlays(state.cred).then((p) => (state.plays = p))]);
+  await Promise.all([
+    setUp(s),
+    listPlays(state.cred).then((p) => (state.plays = p)),
+    connectedProviders(state.cred).then((c) => (state.connected = c), (e) => console.warn("[deepline-assistant] integration status unavailable", e))
+  ]);
   if (!state.needsSetup) await loadRows();
 }
 
@@ -264,7 +270,7 @@ const isBusy = (entity: string, play: string) => state.busy.has(rowKey({ entity_
 /** Pick the one thing the rep most needs to do here, and list the rest quietly. */
 function plan(): { cta: Cta | null; others: { label: string; meta: string; run: () => void; disabled: boolean }[] } {
   if (!state.cred) return { cta: { label: "Sign in to Deepline", run: () => void chrome.tabs.create({ url: signInUrl(state.baseUrl) }) }, others: [] };
-  if (state.needsSetup) return { cta: { label: "Copy a note for your admin", run: copyAdminNote }, others: [] };
+  if (state.needsSetup) return { cta: { label: "Copy note for admin", run: copyAdminNote }, others: [] };
   const c = state.confirming;
   if (c) return { cta: { label: "Go ahead", meta: `up to ${Math.round(c.credits)} credits`, run: () => void run(c.play, c.ctx) }, others: [] };
   const ctx: PageContext = { ...state.ctx, limit: KIND_GROUP[state.ctx.kind] === "search" ? state.cap : undefined };
@@ -282,16 +288,16 @@ function plan(): { cta: Cta | null; others: { label: string; meta: string; run: 
   const nextHandoff = result ? handoffsFor(result).find((x) => !x.done) : undefined;
 
   let cta: Cta | null = null;
-  if (running || [...state.busy].some((k) => k.startsWith(`${entity}\u0000`))) cta = { label: "Working on it…", disabled: true, run: () => undefined };
+  if (running || [...state.busy].some((k) => k.startsWith(`${entity}\u0000`))) cta = { label: "Working…", disabled: true, run: () => undefined };
   else if (nextHandoff) cta = { label: nextHandoff.play.displayName, meta: costLabel(nextHandoff.play.cost), run: () => requestRun(nextHandoff.play, nextHandoff.ctx) };
   else if (result?.email) cta = { label: "Copy email", meta: result.email, run: () => void copy(result.email!) };
   else if (fresh[0]) cta = item(fresh[0]);
-  else if (actions[0]) cta = { ...item(actions[0]), label: `Look up again: ${actions[0].displayName}` };
+  else if (actions[0]) cta = { ...item(actions[0]), label: `${actions[0].displayName} again` };
 
   const ctaPlay = cta && fresh[0] && cta.label === label(fresh[0]) ? fresh[0].playKey : null;
   const others = actions.filter((p) => p.playKey !== ctaPlay && !isBusy(entity, p.playKey)).map((p) => {
     const done = rows.some((r) => r.play_key === p.playKey && r.status === "completed");
-    return { ...item(p), label: done ? `Look up again: ${p.displayName}` : label(p) };
+    return { ...item(p), label: done ? `${p.displayName} again` : label(p) };
   });
   return { cta, others };
 }
@@ -312,9 +318,9 @@ function rowItem(r: RecordRow, onPage: boolean): HTMLElement {
       h("span", { class: `chip ${r.status}` }, STATUS_LABEL[r.status] ?? r.status)
     ),
     h("span", { class: "muted" }, onPage ? ago(r.updated_at) : `${playName(r.play_key)} · ${ago(r.updated_at)}`),
-    r.email ? copyBtn(r.email, "verified email") : null,
+    r.email ? copyBtn(r.email, "verified") : null,
     r.phone ? copyBtn(r.phone, "phone") : null,
-    r.status === "completed" && !r.email && !r.phone && /linkedin_person|salesnav_lead|crm_record/.test(r.kind ?? "") ? h("span", { class: "muted" }, "Nothing found. Misses are free.") : null,
+    r.status === "completed" && !r.email && !r.phone && /linkedin_person|salesnav_lead|crm_record/.test(r.kind ?? "") ? h("span", { class: "muted" }, "Nothing found. No charge.") : null,
     r.error ? h("span", { class: "err" }, r.error) : null,
     ...handoffNote
   );
@@ -347,14 +353,14 @@ function render() {
     $("pageKind").hidden = !$("pageKind").textContent;
     $("pageLabel").textContent = ctx.label;
     const pageRows = state.rows.filter((r) => r.entity_key === ctx.entity_key && !state.config.handoffs.includes(r.play_key));
-    $("pageRows").replaceChildren(...(pageRows.length ? pageRows.map((r) => rowItem(r, true)) : [h("li", { class: "muted" }, "Not looked up yet.")]));
+    $("pageRows").replaceChildren(...(pageRows.length ? pageRows.map((r) => rowItem(r, true)) : [h("li", { class: "muted" }, "Not looked up yet")]));
     $("capRow").hidden = KIND_GROUP[ctx.kind] !== "search" || !pageActions(ctx).length;
     const c = state.confirming;
     $("confirm").hidden = !c;
-    if (c) $("confirm").replaceChildren(h("b", {}, `This may use up to ${Math.round(c.credits)} credits`), h("span", { class: "muted" }, "You're only charged for what's found."), h("button", { class: "link", on: { click: () => ((state.confirming = null), render()) } }, "Cancel"));
+    if (c) $("confirm").replaceChildren(h("b", {}, `Up to ${Math.round(c.credits)} credits`), h("span", { class: "muted" }, "You only pay for what's found."), h("button", { class: "link", on: { click: () => ((state.confirming = null), render()) } }, "Cancel"));
     $("more").hidden = !others.length || !!c;
     $("actions").replaceChildren(...others.map((o) => h("button", { class: "link", disabled: o.disabled, on: { click: o.run } }, h("span", {}, o.label), h("span", { class: "why" }, o.meta))));
-    if (!pageActions(ctx).length && !state.rows.some((r) => r.entity_key === ctx.entity_key)) $("pageRows").replaceChildren(h("li", { class: "muted" }, "Your team hasn't added actions for this kind of page yet."));
+    if (!pageActions(ctx).length && !state.rows.some((r) => r.entity_key === ctx.entity_key)) $("pageRows").replaceChildren(h("li", { class: "muted" }, "No actions for this page yet. Ask your admin."));
   }
   const q = ($("filter") as HTMLInputElement).value.trim().toLowerCase();
   const mine = state.rows.filter((r) => !state.config.handoffs.includes(r.play_key));
@@ -366,8 +372,8 @@ function render() {
 let ctaRun: () => void = () => undefined;
 
 function copyAdminNote() {
-  const note = `Hi, I'd like to use the Deepline Assistant Chrome extension but it says our workspace isn't set up. In Deepline, please run the "Deepline Assistant setup" play once (Plays > Deepline Assistant setup > Run). It creates the table the extension saves lookups to and lets you choose which actions reps see. My account: ${state.owner ?? ""}.`;
-  void navigator.clipboard.writeText(note).then(() => ($("ctaLabel").textContent = "Copied. Paste it to your admin."), () => undefined);
+  const note = `Can you turn on the Deepline Assistant Chrome extension for our team? In Deepline, run the play "prebuilt/deepline-assistant-setup" once. (My account: ${state.owner ?? ""})`;
+  void navigator.clipboard.writeText(note).then(() => ($("ctaLabel").textContent = "Copied"), () => undefined);
 }
 
 /* ---------------------------------------------------------------- tabs */

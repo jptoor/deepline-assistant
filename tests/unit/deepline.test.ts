@@ -48,3 +48,26 @@ describe("runs", () => {
     await expect(startRun(cred, "p", {}, async () => json({}, 401))).rejects.toThrow("Not signed in");
   });
 });
+
+import { connectedProviders, playAvailable } from "../../src/shared/deepline";
+
+describe("connected integrations", () => {
+  it("offers a play only when every integration it calls is connected", () => {
+    const connected = new Set(["leadmagic", "lemlist"]);
+    expect(playAvailable({ providers: ["hubspot"] }, connected)).toBe(false);
+    expect(playAvailable({ providers: ["lemlist"] }, connected)).toBe(true);
+    expect(playAvailable({ providers: [] }, connected)).toBe(true);
+    expect(playAvailable({ providers: ["hubspot"] }, null)).toBe(true);
+  });
+  it("counts team connections and Deepline-provided integrations, not disabled or missing ones", async () => {
+    const set = await connectedProviders(cred, async () =>
+      json({ integrations: [
+        { provider: "hubspot", connection: { connected: true } },
+        { provider: "leadmagic", auth: { status: "configured" } },
+        { provider: "salesforce", auth: { status: "missing" } },
+        { provider: "lemlist", auth: { status: "configured" }, disabled: true }
+      ] })
+    );
+    expect([...set].sort()).toEqual(["hubspot", "leadmagic"]);
+  });
+});

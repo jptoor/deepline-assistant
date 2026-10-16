@@ -18,7 +18,7 @@ writeFileSync(resolve(preview, "sidepanel.html"), html);
 writeFileSync(resolve(preview, "frame.html"), `<!doctype html><style>html,body{margin:0;background:${dark ? "#111110" : "#ffffff"}}iframe{display:block;width:360px;height:760px;border:0}</style><iframe id="f"></iframe><script>f.src="sidepanel.html"+location.search</script>`);
 mkdirSync(out, { recursive: true });
 
-const states = ["signed-out", "setup-needed", "person-new", "person-working", "person-found-handoff", "person-handoff-done", "person-found-copy", "person-nothing", "salesnav-lead", "company", "search", "search-confirm", "crm", "lookups", "no-actions"];
+const states = ["signed-out", "setup-needed", "person-new", "person-working", "person-found-handoff", "person-handoff-done", "person-found-copy", "person-nothing", "salesnav-lead", "company", "search", "search-confirm", "crm", "lookups", "crm-not-connected", "no-actions"];
 for (const s of states) {
   const file = resolve(out, `${s}${dark ? "-dark" : ""}.png`);
   execFileSync(CHROME, ["--headless=new", "--disable-gpu", "--hide-scrollbars", "--allow-file-access-from-files", "--force-device-scale-factor=2", "--window-size=600,760", "--virtual-time-budget=4000", `--blink-settings=preferredColorScheme=${dark ? 0 : 1}`, ...(dark ? ["--force-dark-mode"] : []), `--screenshot=${file}`, `file://${preview}/frame.html?state=${s}`], { stdio: "ignore" });

@@ -25,6 +25,19 @@ export interface PlaySummary {
   contextFields: string[] | null;
   /** Credits per run (or per row for row-unit plays), when Deepline can estimate it. */
   cost: { low: number; high: number; perRow: boolean } | null;
+  /** Integrations the play calls (HubSpot, Salesforce, lemlist...). */
+  providers: string[];
+}
+
+/** Providers this workspace can use right now: connected by the team, or provided by Deepline. */
+export async function connectedProviders(cred: Credential, fetchImpl: FetchLike = fetch): Promise<Set<string>> {
+  const json = await call<{ integrations?: { provider?: string; disabled?: boolean; auth?: { status?: string }; connection?: { connected?: boolean } }[] }>(cred, "/api/v2/integrations/list?include_integration_status=true", fetchImpl);
+  return new Set((json.integrations ?? []).filter((e) => e.provider && !e.disabled && (e.connection?.connected || e.auth?.status === "configured")).map((e) => e.provider!));
+}
+
+/** A play is offered only if every integration it calls is connected. `null` = status unknown, so offer it. */
+export function playAvailable(play: Pick<PlaySummary, "providers">, connected: Set<string> | null): boolean {
+  return !connected || play.providers.every((p) => connected.has(p));
 }
 
 /** "~3 credits", "1–4 credits", "cost varies". Per-row plays scale by the rep's cap. */
@@ -136,7 +149,8 @@ export function toSummary(p: Record<string, unknown>): PlaySummary | null {
     description: typeof p.description === "string" ? p.description : null,
     origin: typeof p.origin === "string" ? p.origin : "owned",
     ...schemaFields(p.inputSchema),
-    cost
+    cost,
+    providers: Array.isArray(p.providers) ? p.providers.filter((x): x is string => typeof x === "string") : []
   };
 }
 

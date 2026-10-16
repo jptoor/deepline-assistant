@@ -121,17 +121,16 @@
   <section id="connect" hidden>
     <div class="card">
       <div class="title">Sign in to start</div>
-      <p class="muted">Use the same Deepline account your team uses. You only do this once.</p>
-      <p class="muted">This panel connects by itself once you're signed in.</p>
-      <button id="approve" class="link">Trouble signing in? Approve this browser instead</button>
-      <p id="claimNote" class="muted" hidden>Click Approve in the Deepline tab that just opened. This panel connects as soon as you do.</p>
+      <p class="muted">Use your team's Deepline account. You only do this once.</p>
+      <button id="approve" class="link">Trouble signing in? Approve this browser</button>
+      <p id="claimNote" class="muted" hidden>Click Approve in the Deepline tab.</p>
     </div>
   </section>
 
   <section id="setup" hidden>
     <div class="card">
-      <div class="title">Your team hasn't turned this on yet</div>
-      <p class="muted">Deepline couldn't finish setting up for your team. Send this to whoever manages Deepline on your team.</p>
+      <div class="title">Not set up yet</div>
+      <p class="muted">Ask your Deepline admin to turn this on.</p>
       <button id="retrySetup" class="link">Try again</button>
     </div>
   </section>
@@ -143,23 +142,23 @@
       <ul id="pageRows" class="rows"></ul>
       <label id="capRow" class="cap" hidden>Import up to <input id="cap" type="number" min="1" max="1000" step="1"> people</label>
       <div id="confirm" class="confirm" hidden></div>
-      <div id="more" class="more" hidden><span class="muted">Other actions</span><div id="actions"></div></div>
+      <div id="more" class="more" hidden><span class="muted">More</span><div id="actions"></div></div>
     </div>
   </section>
 
   <section id="idle" hidden>
-    <div class="card muted">Open a LinkedIn profile, company page or search, a Sales Navigator lead or list, a Salesforce or HubSpot record, or any company website.</div>
+    <div class="card muted">Open a LinkedIn profile, company or search, a CRM record, or a company website.</div>
   </section>
 
   <section id="table" hidden>
     <h2><span>Your lookups</span><button id="refresh" class="link">Refresh</button></h2>
-    <input id="filter" type="search" placeholder="Search names and emails" aria-label="Search your lookups">
+    <input id="filter" type="search" placeholder="Search lookups" aria-label="Search lookups">
     <ul id="rows" class="rows" style="margin-top:6px"></ul>
-    <p id="empty" class="muted" hidden>People and companies you look up show up here, so you can find them again later.</p>
+    <p id="empty" class="muted" hidden>Your lookups show up here.</p>
   </section>
 </main>
 <footer>
-  <button id="disconnect" class="link muted" hidden>Sign out of this panel</button>
+  <button id="disconnect" class="link muted" hidden>Sign out</button>
 </footer>
 <div class="cta" id="ctaBar" hidden><button id="cta" class="btn primary"><span id="ctaLabel"></span><span id="ctaMeta" class="why"></span></button></div>
 <script type="module" src="sidepanel.js"></script>

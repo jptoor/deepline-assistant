@@ -15,8 +15,8 @@
     { playKey: "company-profile", displayName: "company-profile", inputSchema: schema(["domain", "company_linkedin_url"]), costEstimate: cost(1, 1) },
     { playKey: "search-import", displayName: "search-import", inputSchema: schema(["search_url", "limit"], ["search_url"]), costEstimate: cost(2, 3, "row") },
     { playKey: "crm-fill", displayName: "crm-fill", inputSchema: schema(["crm_system", "crm_object", "crm_id"], ["crm_id"]), costEstimate: cost(3, 3) },
-    { playKey: "add-to-hubspot", displayName: "add-to-hubspot", inputSchema: schema(["linkedin_url", "email", "first_name", "last_name"], ["email"]), costEstimate: cost(0, 0) },
-    { playKey: "add-to-lemlist", displayName: "add-to-lemlist", inputSchema: schema(["email", "first_name"], ["email"]), costEstimate: cost(0, 0) }
+    { playKey: "add-to-hubspot", displayName: "add-to-hubspot", inputSchema: schema(["linkedin_url", "email", "first_name", "last_name"], ["email"]), costEstimate: cost(0, 0), providers: ["hubspot"] },
+    { playKey: "add-to-lemlist", displayName: "add-to-lemlist", inputSchema: schema(["email", "first_name"], ["email"]), costEstimate: cost(0, 0), providers: ["lemlist"] }
   ];
   const CONFIG = {
     actions: { person: ["prebuilt/deepline-assistant", "prebuilt/job-change-check"], company: ["find-buyers", "company-profile"], search: ["search-import"], crm: ["crm-fill"] },
@@ -48,6 +48,7 @@
     "search-confirm": { tab: { url: "https://www.linkedin.com/sales/search/people?query=(filters%3AList((type%3ACURRENT_TITLE)))", title: "Sales Navigator" }, rows: [], click: true },
     "crm": { tab: { url: "https://acme.lightning.force.com/lightning/r/Contact/003Ak00000ABCDeIAX/view", title: "Maya Okafor | Salesforce" }, rows: [] },
     "lookups": { tab: { url: "https://mail.google.com/mail/u/0/#inbox", title: "Inbox (3) - jai@acme.io - Gmail" }, rows: [found(), ...others] },
+    "crm-not-connected": { tab: PROFILE, rows: [found()], disconnected: ["hubspot"] },
     "no-actions": { tab: PROFILE, rows: [], config: { actions: { person: [], company: [], search: [], crm: [] } } }
   };
   const st = STATES[name];
@@ -74,6 +75,7 @@
       if (sql.startsWith("SELECT")) return json({ rows: st.rows ?? [] });
       return json({ rows: [] });
     }
+    if (u.pathname === "/api/v2/integrations/list") return json({ integrations: ["hubspot", "lemlist", "salesforce"].map((provider) => ({ provider, connection: { connected: !(st.disconnected ?? []).includes(provider) } })) });
     if (u.pathname.endsWith("/status")) return json({ available: true, lifecycle: { status: "running" } });
     return json({}, 404);
   };
