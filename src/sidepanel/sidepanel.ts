@@ -3,7 +3,7 @@
  *  (assistant.records). Runs in flight are tracked by that table, so closing
  *  the panel loses nothing: the next open reconciles every pending row. */
 import { fetchSession, keySession, pollClaim, registerDevice, signInUrl, isDeeplineTab, type Connection, type PendingClaim } from "../background/auth";
-import { KIND_LABEL, pageContext, type PageContext } from "../shared/context";
+import { KIND_LABEL, pageContext } from "../shared/context";
 import { AuthError, DEFAULT_BASE_URL, TERMINAL, inputFor, listPlays, normalizeBaseUrl, pollRun, query, startRun, type Credential, type PlaySummary } from "../shared/deepline";
 import { SETUP_SQL, finishSql, listSql, startSql, type RecordRow } from "../shared/records";
 
