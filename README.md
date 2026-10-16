@@ -4,12 +4,30 @@ An open-source Chrome side panel that runs your team's [Deepline](https://deepli
 
 **It reads two things: the active tab's URL and its title.** No content scripts, no page reading, no files exposed to web pages, and nothing injected into LinkedIn. Plays do the lookups in Deepline. The whole extension is about 70 KB.
 
+## For reps
+
+1. Add the extension. A Deepline sign-in tab opens; sign in with your usual account. If you're already signed in, there's nothing to do.
+2. Open any LinkedIn profile, company, search, Sales Navigator lead or list, a Salesforce or HubSpot record, or a company website.
+3. Click the button pinned at the bottom of the panel. It always says what it will do and what it costs.
+
+Everything you look up is saved under **Your lookups**, so you can find it again.
+
+## For the central team
+
+Run the **Deepline Assistant setup** play once in the Deepline app (`examples/assistant-setup.play.ts`). It creates the lookups table and saves what reps see:
+
+- which actions appear on person, company, search and CRM pages, in order (the first is the pinned button);
+- which handoffs (add to CRM, add to sequence) appear on a finished result;
+- the button text reps see for each action;
+- when a run asks before spending (default: over 25 credits) and the default search import size.
+
+Run it again to change anything; reps pick it up the next time they open the panel. If nobody has run it, the panel sets itself up with defaults (work email, phone, job change check) on the first rep's first open.
+
+To roll out to the whole team, force-install the extension through Google Admin. Teams on a dedicated Deepline host set `baseUrl` through Chrome policy (`src/managed-schema.json`).
+
 ## How it works
 
-1. **Connect.** Sign in to Deepline in a normal tab, or approve the browser as a device (the same flow as `deepline auth register`).
-2. **Open a page.** The panel identifies it from the URL and title: profile slug, Sales Navigator lead id, company slug, search URL, CRM object and id, or domain.
-3. **Run a play.** The panel lists plays whose input it can fill (your pinned plays first) and sends only the fields each play declares. It waits up to 15 s for the result, then polls run status.
-4. **See it in your table.** Each run is one row in `assistant.records` per (you, page, play). The row is written before the run starts, so a closed panel or crash never loses a run; the next open finishes every pending row.
+The panel reads the active tab's address and title, picks the team's actions for that kind of page, and fills each action's inputs by name (`linkedin_url`, `domain`, `search_url`, `crm_id`, `first_name`, ...). It starts the run, waits up to 15 s, then checks status until it finishes. Each run is one row in `assistant.records` per (rep, page, action), written before the run starts, so a closed panel never loses a run.
 
 ## Install (developer mode)
 
@@ -21,22 +39,7 @@ Load `dist/` at `chrome://extensions` with Developer mode on. Press Alt+Shift+D 
 
 ## Plays
 
-The panel works with any published play. It fills a play's inputs from the page by name: `linkedin_url`, `sales_navigator_url`, `company_linkedin_url`, `search_url`, `domain`, `first_name`, `last_name`, `full_name`, `company_name`, `crm_system`, `crm_object`, `crm_id`, `url`. A play that declares `context` receives the whole page context, trimmed to the keys it declares. Plays with a required input the page cannot fill are hidden.
-
-`examples/assistant.play.ts` is the default play: work email and phone for a LinkedIn profile or Sales Navigator lead.
-
-```sh
-deepline plays check ./examples/assistant.play.ts
-deepline plays publish ./examples/assistant.play.ts
-```
-
-## Your table
-
-The panel creates `assistant.records` in your workspace database on first connect (`CREATE ... IF NOT EXISTS`), keyed by `(owner, entity_key, play_key)`. Email and phone found anywhere in a play result are copied into their own columns. Query it like any workspace table:
-
-```sh
-deepline db query "SELECT label, email, phone, play_key, status FROM assistant.records WHERE owner = 'you@company.com' ORDER BY updated_at DESC"
-```
+Any published play can be an action. A play that declares `context` receives the whole page context, trimmed to the keys it declares. `examples/assistant.play.ts` is a combined work email + phone action for profiles and Sales Navigator leads.
 
 ## Develop
 

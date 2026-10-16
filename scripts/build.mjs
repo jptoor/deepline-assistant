@@ -23,12 +23,12 @@ const manifest = {
   // nothing a site can detect.
   permissions: ["storage", "sidePanel", "tabs"],
   host_permissions: ["https://code.deepline.com/*"],
-  // Requested only when Settings points at a local Deepline.
-  optional_host_permissions: ["http://localhost/*", "http://127.0.0.1/*"],
   background: { service_worker: "background.js", type: "module" },
   action: { default_title: "Deepline Assistant" },
   side_panel: { default_path: "sidepanel.html" },
   commands: { _execute_action: { suggested_key: { default: "Alt+Shift+D" }, description: "Open Deepline Assistant" } },
+  // Teams can force-install and configure through Chrome policy (Google Admin).
+  storage: { managed_schema: "managed-schema.json" },
   icons: { "16": "icons/icon16.png", "48": "icons/icon48.png", "128": "icons/icon128.png" }
 };
 writeFileSync(resolve(outdir, "manifest.json"), JSON.stringify(manifest, null, 2));
@@ -50,7 +50,7 @@ await build({
   logLevel: "info"
 });
 
-for (const f of ["src/sidepanel/sidepanel.html"]) {
+for (const f of ["src/sidepanel/sidepanel.html", "src/managed-schema.json"]) {
   cpSync(f, resolve(outdir, f.split("/").pop()));
 }
 cpSync("src/icons", resolve(outdir, "icons"), { recursive: true });

@@ -1,7 +1,7 @@
 <title>Deepline Assistant Wireframes</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600&family=Geist+Mono:wght@400;600&family=Instrument+Serif&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600&family=Geist+Mono:wght@400&display=swap">
 <style>
 /* Layout: a review board. Each step = browser URL strip + 340px panel mock (Deepline app tokens: silver surfaces, monochrome chrome, colour only for status, Geist 14/16) on the left; numbered annotations and rubric tags on the right; stacks at phone width. Review-board marks use brand blue, which the product chrome never does. */
 :root {
@@ -23,7 +23,8 @@
   --info-fg: #045762; --info-bg: #e7fbfe; --info-bd: #cef7fd;
   --later: #5c5c5a;
   --later-bg: #ededec;
-  --display: "Instrument Serif", Georgia, "Times New Roman", serif;
+  --cta: #242423;
+  --cta-fg: #fcfcfc;
   --body: "Geist", ui-sans-serif, system-ui, sans-serif;
   --mono: "Geist Mono", ui-monospace, Menlo, Consolas, monospace;
 }
@@ -31,38 +32,40 @@
   --bg: #111110; --sheet: #1f1f1e; --card: #242423; --ink: #fcfcfc; --ink-2: #c9c9c6; --muted: #a3a3a0; --line: color-mix(in srgb, #fcfcfc 12%, transparent); --line-strong: #5c5c5a;
   --fill: #313130; --fill-2: #3e3e3c; --fill-edge: #5c5c5a; --mark: #9999ff; --mark-bg: #000066;
   --ok-fg: #81e4aa; --ok-bg: #061d10; --ok-bd: #12542d; --bad-fg: #e87d7d; --bad-bg: #1e0505; --bad-bd: #570f0f; --info-fg: #6ce8f9; --info-bg: #011e22; --info-bd: #045762;
-  --later: #c9c9c6; --later-bg: #313130; color-scheme: dark; } }
+  --later: #c9c9c6; --later-bg: #313130; --cta: #3e3e3c; --cta-fg: #fcfcfc; color-scheme: dark; } }
 :root[data-theme="dark"] {
   --bg: #111110; --sheet: #1f1f1e; --card: #242423; --ink: #fcfcfc; --ink-2: #c9c9c6; --muted: #a3a3a0; --line: color-mix(in srgb, #fcfcfc 12%, transparent); --line-strong: #5c5c5a;
   --fill: #313130; --fill-2: #3e3e3c; --fill-edge: #5c5c5a; --mark: #9999ff; --mark-bg: #000066;
   --ok-fg: #81e4aa; --ok-bg: #061d10; --ok-bd: #12542d; --bad-fg: #e87d7d; --bad-bg: #1e0505; --bad-bd: #570f0f; --info-fg: #6ce8f9; --info-bg: #011e22; --info-bd: #045762;
-  --later: #c9c9c6; --later-bg: #313130; color-scheme: dark; }
+  --later: #c9c9c6; --later-bg: #313130; --cta: #3e3e3c; --cta-fg: #fcfcfc; color-scheme: dark; }
 
 * { box-sizing: border-box; }
 body { background: var(--bg); color: var(--ink); font: 14px/1.45 var(--body); letter-spacing: -0.011em; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 32px 64px; }
 .wrap { max-width: 1120px; margin: 0 auto; display: grid; gap: 40px; }
-h1 { font: 400 clamp(32px, 5vw, 48px)/1.05 var(--display); margin: 0; text-wrap: balance; }
-h2 { font: 400 28px/1.15 var(--display); margin: 0; text-wrap: balance; }
+h1 { font: 600 28px/1.2 var(--body); letter-spacing: -0.02em; margin: 0; text-wrap: balance; }
+h2 { font: 600 20px/1.3 var(--body); letter-spacing: -0.014em; margin: 0; text-wrap: balance; }
 h3 { font-size: 16px; margin: 0; }
 p { margin: 0; max-width: 68ch; }
 .lede { color: var(--ink-2); font-size: 16px; }
-.eyebrow { font: 600 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.eyebrow { color: var(--muted); }
 code, .mono { font-family: var(--mono); }
 
 /* Intro blocks */
 .intro { display: grid; gap: 14px; }
-.decisions { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
-.decision { background: var(--sheet); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; display: grid; gap: 4px; min-width: 0; }
-.decision b { font-size: 16px; font-weight: 600; }
+.decisions { display: grid; gap: 0; background: var(--sheet); border: 1px solid var(--line); border-radius: 14px; padding: 4px 16px; }
+.decision { display: grid; grid-template-columns: minmax(160px, 220px) minmax(0, 1fr); gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); min-width: 0; }
+.decision:first-child { border-top: 0; }
+@media (max-width: 560px) { .decision { grid-template-columns: minmax(0, 1fr); gap: 2px; } }
+.decision b { font-weight: 600; }
 .decision span { color: var(--ink-2); }
 .journey { display: flex; flex-wrap: wrap; gap: 6px; }
-.journey a { font: 600 12px/1 var(--mono); color: var(--ink); text-decoration: none; border: 1px solid var(--line); background: var(--sheet); padding: 7px 10px; border-radius: 999px; }
+.journey a { font-weight: 600; color: var(--ink); text-decoration: none; border: 1px solid var(--line); background: var(--sheet); padding: 7px 10px; border-radius: 999px; }
 .journey a:hover, .journey a:focus-visible { border-color: var(--ink); }
 .journey a.later { color: var(--muted); border-style: dashed; }
 .rubric { overflow-x: auto; background: var(--sheet); border: 1px solid var(--line); border-radius: 14px; }
 .rubric table { border-collapse: collapse; width: 100%; min-width: 560px; }
 .rubric th, .rubric td { text-align: left; padding: 7px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
-.rubric th { font: 600 11px/1.2 var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.rubric th { font-weight: 600; color: var(--muted); }
 .rubric td:first-child, .rubric td:nth-child(3) { font-family: var(--mono); white-space: nowrap; }
 .rubric td:nth-child(3) { font-variant-numeric: tabular-nums; text-align: right; }
 
@@ -77,15 +80,30 @@ code, .mono { font-family: var(--mono); }
 @media (max-width: 760px) { .frame { grid-template-columns: minmax(0, 1fr); } }
 .frame-title h3 { font-size: 16px; font-weight: 600; }
 .frame-title { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
-.step { font: 600 12px/1 var(--mono); color: var(--muted); }
-.tag-later { font: 600 11px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--later); background: var(--later-bg); padding: 4px 7px; border-radius: 4px; }
+.step { color: var(--muted); font-variant-numeric: tabular-nums; }
+.tag-later { font-weight: 600; color: var(--later); background: var(--later-bg); padding: 2px 8px; border-radius: 6px; }
 .notes { display: grid; gap: 12px; min-width: 0; }
 .notes ol { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; counter-reset: n; }
 .notes li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 8px; color: var(--ink-2); counter-increment: n; }
 .notes li::before { content: counter(n); font: 600 11px/22px var(--mono); text-align: center; color: var(--mark); background: var(--mark-bg); border-radius: 50%; width: 22px; height: 22px; }
 .crit { display: flex; flex-wrap: wrap; gap: 6px; }
-.crit span { font: 600 11px/1 var(--mono); border: 1px solid var(--line); padding: 5px 7px; border-radius: 4px; color: var(--ink-2); }
+.crit span { font-size: 13px; border: 1px solid var(--line); padding: 5px 7px; border-radius: 4px; color: var(--ink-2); }
 .crit span b { color: var(--ink); }
+.spec { display: grid; gap: 0; border: 1px solid var(--line); border-radius: 10px; }
+.spec div { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 10px; padding: 8px 12px; border-top: 1px solid var(--line); }
+.spec div:first-child { border-top: 0; }
+.spec dt { color: var(--muted); margin: 0; }
+.spec dd { margin: 0; color: var(--ink); }
+.spec .pri dd { font-weight: 600; }
+@media (max-width: 560px) { .spec div { grid-template-columns: minmax(0, 1fr); gap: 2px; } }
+.ctabar { border-top: 1px solid var(--line); padding: 10px 12px 12px; background: var(--sheet); }
+.ctabar .btn { min-height: 44px; background: var(--cta); color: var(--cta-fg); border-color: var(--cta); }
+.ctabar .btn small { color: var(--cta-fg); opacity: .75; }
+.ctabar .btn.off { opacity: .55; }
+.more { display: grid; gap: 0; }
+.more .lk { display: flex; justify-content: space-between; gap: 8px; padding: 9px 0; border-top: 1px solid var(--line); }
+.more .lk:first-of-type { border-top: 0; }
+.more .lk small { color: var(--muted); font-size: 14px; white-space: nowrap; }
 .ask { border-left: 3px solid var(--mark); padding: 2px 0 2px 10px; color: var(--ink); }
 
 /* Device mock: Deepline app tokens */
@@ -143,22 +161,22 @@ footer { color: var(--muted); font-size: 13px; display: grid; gap: 6px; }
 
 <div class="wrap">
   <header class="intro">
-    <span class="eyebrow">Chrome side panel · review draft · 15 Oct 2026 · Deepline app tokens</span>
+    <span class="eyebrow">Review draft, 15 October 2026</span>
     <h1>Deepline Assistant wireframes</h1>
-    <p class="lede">Every step a rep goes through, drawn at real panel width with real copy, in the Deepline app's own tokens: silver surfaces, monochrome buttons, colour only for status, Geist at 14 and 16 px. Each frame lists what to look at and the rubric criteria it is built to win. Dashed frames are later scope, shown so you can approve or cut them.</p>
+    <p class="lede">Every screen a sales rep sees, at real panel width, in the Deepline app's own styles. Each screen has one pinned action: the most important job for that moment. Each frame states the rep's goal, what they must see, that action, and what Deepline does in the background.</p>
     <nav class="journey" aria-label="Journeys" id="jumps"></nav>
   </header>
 
   <section class="intro" aria-labelledby="dec">
-    <h2 id="dec">What we decided</h2>
-    <div class="decisions">
-      <div class="decision"><b>Existing data first</b><span>The page card shows rows already in your table before any paid button. A completed result turns the primary button into “Refresh”.</span></div>
-      <div class="decision"><b>Only my rows</b><span>The card and My table show your own lookups. No team rows, no CRM lookup before a run.</span></div>
-      <div class="decision"><b>Cost on the button, confirm above 25 credits</b><span>Buttons carry the estimate. Runs that may cost more than 25 credits ask once, inside the panel.</span></div>
-      <div class="decision"><b>Search import with a cap</b><span>Search and list pages import up to a number you set (default 25). Deepline fetches the results; the page is never read.</span></div>
-      <div class="decision"><b>Admin-chosen handoffs</b><span>Plays an admin marks as handoffs (“Create HubSpot contact”, “Add to lemlist”) appear on a finished row and link to the created record.</span></div>
-      <div class="decision"><b>URL and title only</b><span>No scripts on any page. The detected entity is shown in the card so a wrong match is visible.</span></div>
-    </div>
+    <h2 id="dec">Rules every screen follows</h2>
+    <dl class="decisions">
+      <div class="decision"><b>One pinned action</b><span>The bottom of the panel always holds the single most important action, with what it will do and what it costs. Everything else is a quiet text link.</span></div>
+      <div class="decision"><b>Nothing technical for reps</b><span>No keys, settings, play names to set up, or URLs. The central team chooses the actions and handoffs once in Deepline; reps just click.</span></div>
+      <div class="decision"><b>One-step sign-in</b><span>Installing opens Deepline sign-in. If the rep is already signed in, the panel is connected with no steps at all.</span></div>
+      <div class="decision"><b>What you have, then what to do</b><span>Saved results show before any paid action. Once a result is in, the pinned action becomes the handoff or Copy email, never a second paid lookup.</span></div>
+      <div class="decision"><b>Credits on the button</b><span>Every action shows its cost. Anything over 25 credits asks once in the panel. Misses are free.</span></div>
+      <div class="decision"><b>Only the address and title</b><span>The panel reads the page address and tab title, nothing else, so LinkedIn sees nothing. Deepline does every lookup.</span></div>
+    </dl>
   </section>
 
   <section class="intro" aria-labelledby="rub">
@@ -174,7 +192,7 @@ footer { color: var(--muted); font-size: 13px; display: grid; gap: 6px; }
 
   <footer>
     <span>Sources: docs/research/jtbd-journey-rubric.md, docs/research/competitor-extensions.md, docs/research/zi-extension-analysis.md in jptoor/deepline-assistant.</span>
-    <span>Names, emails and numbers in the frames are examples.</span>
+    <span>Names, emails, credit costs and numbers in the frames are examples.</span>
   </footer>
 </div>
 
@@ -208,125 +226,93 @@ const device = (u, body) => `<div class="device" role="img" aria-label="Panel wi
 const tableSec = rows => `<div class="box"><div class="kind"><b style="color:var(--ink)">My table</b><span class="lnk">Refresh</span></div><div class="input"><span>Filter by name, email, play</span></div>${rows}</div>`;
 
 const PROFILE = "linkedin.com/in/maya-okafor-4b1";
-const card = (kind, title, detected, inner) => `<div class="box"><div class="kind"><span>${kind}</span><u>${detected}</u></div><div class="ttl">${title}</div>${inner}</div>`;
+const card = (kind, title, detected, inner = "") => `<div class="box"><div class="kind"><span>${kind}</span><u>${detected}</u></div><div class="ttl">${title}</div>${inner}</div>`;
+const cta = (label, meta = "", off = false) => `<div class="ctabar">${btn(label, meta, off ? "off" : "")}</div>`;
+const more = (items) => `<div class="more"><span class="sub">Other actions</span>${items.map(([l, m]) => `<div class="lk"><span class="lnk">${l}</span><small>${m}</small></div>`).join("")}</div>`;
+const panel = (u, body, ctaHtml) => `<div class="device" role="img" aria-label="Panel wireframe">${url(u)}<div class="p">${body}</div>${ctaHtml}</div>`;
+const browser = (u, body) => `<div class="device" role="img" aria-label="Browser tab wireframe">${url(u)}<div class="p">${body}</div></div>`;
 
-/* ---------- the steps ---------- */
 const SECTIONS = [
- { id: "connect", label: "J1 Connect", title: "Connect", job: "Hygiene: don't make me log in again, don't lock me out.", frames: [
-  { t: "First open, signed out", crit: ["C4","C1"], mock: device("linkedin.com/in/maya-okafor-4b1", head("") + `
-    <div class="box"><div class="ttl">Connect your Deepline workspace</div>
-    <span class="sub">Plays run in Deepline. Results save to your table there. This panel reads only the page address and title.</span>
-    <div class="btns">${btn("Sign in to Deepline","opens a tab","pri")}${btn("Connect with device approval")}</div></div>
-    <div class="note">Already signed in at deepline.com? This panel connects by itself when that tab loads.</div>` + pin(1,62) + pin(2,150)),
-    notes: ["One button if you already use Deepline. The panel picks up the session from the deepline.com tab with no second login, which is ZoomInfo's top 1★ complaint.", "Device approval is the fallback for SSO users or browsers without a session. Same flow as `deepline auth register`."],
-    ask: "Should signed-out reps still see what page was detected, to show value before sign-in?" },
-  { t: "Waiting for device approval", crit: ["C4","C10"], mock: device("code.deepline.com/cli/claim/…", head("") + `
-    <div class="box"><div class="ttl">Approve this browser</div>
-    <span class="sub">Approve in the Deepline tab. This panel connects the moment you do.</span>
-    <div class="bar"><i style="width:40%"></i></div>
-    <div class="btn-row">${btn("Reopen approval tab")}${btn("Cancel")}</div></div>` + pin(1,96)),
-    notes: ["The panel polls while it is open and keeps polling after a reopen until the claim expires (24 h). No code to type."] },
-  { t: "Session expired or key revoked", crit: ["C4","C10"], mock: device(PROFILE, head("jai@acme.io") + `
-    <div class="alert warn"><b>You're signed out of Deepline</b><span>Your runs and table are safe. Sign in again to keep going.</span>${btn("Sign in to Deepline","","pri")}</div>
-    ${card("LinkedIn profile","Maya Okafor","from URL",`<span class="sub">Last saved: work email, phone · 3d ago</span>`)}` + pin(1,40) + pin(2,170)),
-    notes: ["A named state with one action, instead of a spinner or a blank panel.", "The page card stays visible and so does your cached last result, so you keep working context while signing back in."] },
-  { t: "Table can't be created", crit: ["C10"], mock: device(PROFILE, head() + `
-    <div class="alert"><b>Your table isn't set up yet</b><span>Deepline refused to create <code>assistant.records</code> in this workspace. An admin can run the setup once.</span><div class="btn-row">${btn("Copy setup command")}${btn("Retry")}</div></div>`),
-    notes: ["First-connect failure states the exact cause and a fix an admin can paste. The command is the three CREATE IF NOT EXISTS statements."] },
+ { id: "start", label: "Get started", title: "Install and sign in", job: "Hygiene: don't make me log in again, don't lock me out.", frames: [
+  { t: "Install opens sign-in", crit: ["C4","C1"],
+    mock: browser("code.deepline.com/sign-in", `<div class="ttl">Sign in to Deepline</div><span class="sub">Opened automatically when you added the extension.</span>${btn("Continue with Google","","pri")}${btn("Email me a sign-in link")}`),
+    goal: "Get set up without thinking about it.", needs: "Nothing new: the same Deepline account the team already uses.", cta: "Continue with Google (in the Deepline tab)", sys: "Installing opens this tab. Signing in here connects the panel; there is no second login." },
+  { t: "Already signed in", crit: ["C4","C1"],
+    mock: panel(PROFILE, head() + card("LinkedIn profile","Maya Okafor","read from the address", `<span class="sub">Nothing saved for Maya yet.</span>`), cta("Find email + phone","~3 credits")),
+    goal: "Start working immediately.", needs: "That it's connected (their email, top right) and who is on screen.", cta: "Find email + phone · ~3 credits", sys: "Zero setup steps. The panel found the Deepline session and the team's actions." },
+  { t: "Not signed in yet", crit: ["C4"],
+    mock: panel(PROFILE, head("") + `<div class="box"><div class="ttl">Sign in to start</div><span class="sub">Use the Deepline account your team uses. This panel connects by itself once you're signed in.</span><span class="lnk">Trouble signing in? Approve this browser instead</span></div>`, cta("Sign in to Deepline")),
+    goal: "Get in.", needs: "One way in, plus a way out if SSO blocks it.", cta: "Sign in to Deepline", sys: "Opens the sign-in tab; the panel connects the moment the tab finishes signing in." },
+  { t: "Signed out later", crit: ["C4","C10"],
+    mock: panel(PROFILE, head("") + `<div class="alert warn"><b>You're signed out of Deepline</b><span>Your saved lookups are safe.</span></div>` + card("LinkedIn profile","Maya Okafor","read from the address", `<span class="sub">Saved 3d ago: email, phone</span>`), cta("Sign in again")),
+    goal: "Get back to work without losing anything.", needs: "That nothing was lost.", cta: "Sign in again", sys: "Saved results stay visible; nothing re-runs." },
+  { t: "Team setup isn't done", crit: ["C10"],
+    mock: panel(PROFILE, head() + `<div class="box"><div class="ttl">Your team hasn't turned this on yet</div><span class="sub">Deepline couldn't finish setting up for your workspace. Send this to whoever manages Deepline on your team.</span><span class="lnk">Try again</span></div>`, cta("Copy a note for your admin")),
+    goal: "Get unblocked without understanding why.", needs: "Who can fix it.", cta: "Copy a note for your admin", sys: "Copies a plain-English request that names the one setup step." },
  ]},
- { id: "person", label: "J2 Person", title: "Person: LinkedIn profile or Sales Navigator lead", job: "Reach this person. Don't pay twice. Trust it before I send.", frames: [
-  { t: "New person, nothing saved yet", crit: ["C1","C6","C11","C12"], mock: device(PROFILE, head() + card("LinkedIn profile","Maya Okafor","maya-okafor-4b1 · from URL", `
-    <span class="sub">Not in your table yet</span>
-    <div class="btns">${btn("Find email + phone","~3 credits · free if no match","pri")}${btn("Job change check","1 credit")}${btn("Research for call","~2 credits")}</div>
-    <span class="lnk">More plays (6)</span>`) + pin(1,58) + pin(2,96) + pin(3,140)),
-    notes: ["Shows exactly what was detected: profile slug, read from the URL, with the name from the tab title. A wrong match is visible before anything is spent.", "Plain statement that nothing is saved yet, so the primary button is safe to press.", "Cost on every button, including the no-charge-on-miss rule. Pinned plays first, at most four, then “More plays”."],
-    ask: "Do you want a per-rep monthly credit counter in the header, or only per-button estimates?" },
-  { t: "Running", crit: ["C1","C5","C9"], mock: device(PROFILE, head() + card("LinkedIn profile","Maya Okafor","maya-okafor-4b1 · from URL", `
-    <div class="row"><div class="top"><span class="nm">Find email + phone</span>${chip("running · 6 s")}</div><div class="sk" style="width:70%"></div><div class="sk" style="width:45%"></div></div>
-    <div class="btns">${btn("Running Find email + phone…","","off")}${btn("Job change check","1 credit")}</div>`) +
-    `<div class="note">You can open the next profile. This run keeps going and lands in My table.</div>` + pin(1,96) + pin(2,214)),
-    notes: ["Row appears at once with elapsed time; skeleton lines show where the email and phone will land.", "The rep can move on. The row was written before the run started, so closing the panel loses nothing."] },
-  { t: "Result with trust signals and handoff", crit: ["C3","C7","C13","C6"], mock: device(PROFILE, head() + card("LinkedIn profile","Maya Okafor","maya-okafor-4b1 · from URL", `
-    <div class="row"><div class="top"><span class="nm">Find email + phone</span>${chip("done · 3 credits","ok")}</div>
-    ${val("maya@northwind.io","verified · LeadMagic · today")}
-    ${val("+1 415 555 0142","mobile · FullEnrich · today")}
-    <span class="lnk">Wrong or bounced? Refresh</span></div>
-    <div class="btn-row">${btn("Create HubSpot contact")}${btn("Add to Q4 lemlist")}</div>`) + pin(1,90) + pin(2,150) + pin(3,186)),
-    notes: ["Every value carries status, provider and date. Click to copy.", "Bounced or wrong-number recovery is one link that re-runs with a forced refresh.", "Admin-chosen handoff plays sit on the finished row. After a handoff the button becomes “Open in HubSpot”."],
-    ask: "Should a handoff be allowed when the email is unverified, or disabled with a reason?" },
-  { t: "Returning to a person you already enriched", crit: ["C2","C6"], mock: device(PROFILE, head() + card("LinkedIn profile","Maya Okafor","maya-okafor-4b1 · from URL", `
-    <div class="row"><div class="top"><span class="nm">Find email + phone</span>${chip("done · 12d ago","ok")}</div>
-    ${val("maya@northwind.io","verified 12d ago")}${val("+1 415 555 0142","mobile")}</div>
-    <div class="btns">${btn("Refresh email + phone","~3 credits")}${btn("Open in HubSpot","contact created 12d ago")}</div>`) + pin(1,76) + pin(2,150)),
-    notes: ["Existing data leads. Nothing is primary-styled because the rep already has what they came for.", "Re-running is labeled “Refresh” with its cost, so paying twice is a deliberate choice."] },
-  { t: "No match", crit: ["C10","C6"], mock: device(PROFILE, head() + card("LinkedIn profile","Maya Okafor","maya-okafor-4b1 · from URL", `
-    <div class="row"><div class="top"><span class="nm">Find email + phone</span>${chip("no match · 0 credits","bad")}</div>
-    <span class="sub">6 providers checked. No work email or phone found.</span></div>
-    <div class="btns">${btn("Try personal email","~1 credit")}${btn("Research for call","~2 credits")}</div>`) + pin(1,76)),
-    notes: ["A miss says how hard it looked, confirms no charge, and offers the next sensible play. Failed runs get the same shape with the reason and a Retry."] },
-  { t: "Sales Navigator lead", crit: ["C11","C12"], mock: device("linkedin.com/sales/lead/ACwAAB3k…", head() + card("Sales Navigator lead","Sam Lee","lead id · from URL", `
-    <span class="note">Sales Navigator hides the public profile. The play finds it from the name first.</span>
-    <div class="btns">${btn("Find email + phone","~4 credits","pri")}</div>`) + pin(1,94)),
-    notes: ["We never relabel a Sales Navigator URL as a public profile. The extra step and its cost are stated up front."] },
+ { id: "admin", label: "Central team", title: "One-time setup in Deepline", job: "The central team decides what reps see. Reps never do this.", frames: [
+  { t: "Choose actions and handoffs", crit: ["C7","C6"],
+    mock: browser("code.deepline.com/plays/deepline-assistant-setup", `<div class="ttl">Deepline Assistant setup</div>
+      <div class="field"><span>People</span><span>Find email + phone, Job change check</span></div>
+      <div class="field"><span>Companies</span><span>Find VP Sales + RevOps</span></div>
+      <div class="field"><span>Searches</span><span>Import and enrich</span></div>
+      <div class="field"><span>Handoffs</span><span>Add to HubSpot, Add to Q4 lemlist</span></div>
+      <div class="field"><span>Ask first over</span><span>25 credits</span></div>${btn("Save for the team","","pri")}`),
+    goal: "Give every rep the same few right actions.", needs: "Which actions per kind of page, which handoffs, a spending check.", cta: "Save for the team", sys: "Creates the lookup table and saves these choices; every rep's panel picks them up on next open." },
  ]},
- { id: "company", label: "J3 Company", title: "Company: LinkedIn company page or any website", job: "Find the right people at this account. Prepare for the conversation.", frames: [
-  { t: "Company website", crit: ["C1","C11","C2"], mock: device("northwind.io/pricing", head() + card("Company website","northwind.io","domain · from URL", `
-    <div class="field"><span>HQ</span><span>San Francisco, CA</span></div>
-    <div class="field"><span>Employees</span><span>210</span></div>
-    <div class="field"><span>Saved</span><span>Company profile · 2d ago</span></div>
-    <div class="btns">${btn("Find VP Sales + RevOps","~6 credits","pri")}${btn("Refresh company profile","1 credit")}</div>`) + pin(1,58) + pin(2,96)),
-    notes: ["Domain from the URL; tool sites (Google, Gmail, GitHub…) are skipped so the card never claims a company that isn't there.", "HQ address and employee count stay visible. Their removal triggered ZoomInfo's July wave of 1★ reviews."],
-    ask: "Which roles should the default “find people at this company” play target?" },
-  { t: "LinkedIn company page", crit: ["C11"], mock: device("linkedin.com/company/northwind", head() + card("Company","Northwind","northwind · from URL", `
-    <div class="btns">${btn("Find VP Sales + RevOps","~6 credits","pri")}${btn("Company profile","1 credit")}</div>`)),
-    notes: ["Same plays as the website frame, keyed on the company slug instead of the domain."] },
+ { id: "person", label: "Person", title: "A LinkedIn profile or Sales Navigator lead", job: "Reach this person. Don't pay twice. Trust it before I send.", frames: [
+  { t: "New person", crit: ["C1","C6","C11","C12"],
+    mock: panel(PROFILE, head() + card("LinkedIn profile","Maya Okafor","read from the address", `<span class="sub">Nothing saved for Maya yet.</span>` + more([["Job change check","~1 credit"]])), cta("Find email + phone","~3 credits")),
+    goal: "Get a way to reach Maya.", needs: "That it's the right person, that nothing is saved yet, the cost.", cta: "Find email + phone · ~3 credits", sys: "Sends Maya's profile address to the team's action; checks every provider in turn; misses are free." },
+  { t: "Working", crit: ["C1","C5","C9"],
+    mock: panel(PROFILE, head() + card("LinkedIn profile","Maya Okafor","read from the address", `<div class="row"><div class="top"><span class="nm">Find email + phone</span>${chip("working")}</div><div class="sk" style="width:70%"></div><div class="sk" style="width:45%"></div></div><span class="sub">You can open the next profile. This keeps going.</span>`), cta("Working on it…","",true)),
+    goal: "Keep moving.", needs: "That it's happening and that leaving is safe.", cta: "Working on it… (disabled)", sys: "Saved as in progress before it starts, so closing the panel loses nothing." },
+  { t: "Found, with a handoff", crit: ["C3","C7","C13"],
+    mock: panel(PROFILE, head() + card("LinkedIn profile","Maya Okafor","read from the address", `<div class="row"><div class="top"><span class="nm">Find email + phone</span>${chip("done","ok")}</div>${val("maya@northwind.io","verified · today")}${val("+1 415 555 0142","mobile · today")}<span class="lnk">Wrong or bounced? Look up again</span></div>` + more([["Copy email",""],["Add to Q4 lemlist","free"]])), cta("Add to HubSpot","free")),
+    goal: "Use the result without copy-paste.", needs: "The email and phone, whether to trust them, where they can go.", cta: "Add to HubSpot", sys: "Runs the team's HubSpot handoff with Maya's details; the row then reads 'Add to HubSpot: done' with a link." },
+  { t: "Found, no handoff set up", crit: ["C3","C13"],
+    mock: panel(PROFILE, head() + card("LinkedIn profile","Maya Okafor","read from the address", `<div class="row"><div class="top"><span class="nm">Find email + phone</span>${chip("done · 12d ago","ok")}</div>${val("maya@northwind.io","verified 12d ago")}${val("+1 415 555 0142","mobile")}</div>` + more([["Look up again","~3 credits"],["Job change check","~1 credit"]])), cta("Copy email","maya@northwind.io")),
+    goal: "Get the email into my email.", needs: "The saved value and how old it is.", cta: "Copy email", sys: "Nothing is re-bought. Looking up again is a deliberate, priced choice." },
+  { t: "Nothing found", crit: ["C10","C6"],
+    mock: panel(PROFILE, head() + card("LinkedIn profile","Maya Okafor","read from the address", `<div class="row"><div class="top"><span class="nm">Find email + phone</span>${chip("nothing found","bad")}</div><span class="sub">Every provider checked. Misses are free.</span></div>`), cta("Job change check","~1 credit")),
+    goal: "Know what to try next.", needs: "That it really looked, and that it was free.", cta: "The team's next action (here, Job change check)", sys: "No charge for the miss." },
+  { t: "Sales Navigator lead", crit: ["C11","C12"],
+    mock: panel("linkedin.com/sales/lead/ACwAAB3k…", head() + card("Sales Navigator lead","Sam Lee","read from the address", `<span class="sub">Sales Navigator hides the public profile, so this finds it from the name first.</span>`), cta("Find email + phone","~4 credits")),
+    goal: "Same as a profile.", needs: "Why it costs a little more.", cta: "Find email + phone · ~4 credits", sys: "Finds the public profile from the name, then looks up email and phone." },
  ]},
- { id: "search", label: "J4 Search", title: "Search or list", job: "Turn a search into a list, without clicking through pages.", frames: [
-  { t: "Import with a cap", crit: ["C8","C6","C12"], mock: device("linkedin.com/sales/search/people?query=…", head() + card("Sales Navigator search","VP Sales · SaaS · 51–200","search URL · from URL", `
-    <div class="field"><span>Import up to</span><span class="input" style="padding:3px 8px"><span style="color:var(--ink)">25</span><span>people</span></span></div>
-    <div class="btns">${btn("Import 25 with Find email + phone","up to ~75 credits","pri")}</div>
-    <span class="sub">Deepline fetches the results. Nothing is read from this page.</span>`) + pin(1,96) + pin(2,134)),
-    notes: ["Cap defaults to 25; the play sets the maximum. The estimate scales with the number.", "States plainly that the server does the fetching, which is the LinkedIn-safe and faster path."] },
-  { t: "Over 25 credits: confirm in the panel", crit: ["C6"], mock: device("linkedin.com/sales/search/people?query=…", head() + card("Sales Navigator search","VP Sales · SaaS · 51–200","search URL · from URL", `
-    <div class="alert warn"><b>This import may use up to 300 credits</b><span>100 people × ~3 credits. You're charged only for matches.</span><div class="btn-row">${btn("Import 100","","pri")}${btn("Cancel")}</div></div>`) + pin(1,90)),
-    notes: ["The threshold you chose: anything above 25 credits asks once, inline, never as a browser dialog."],
-    ask: "Is 25 the right threshold, and should admins be able to change it per workspace?" },
-  { t: "Import in progress", crit: ["C8","C9","C1"], mock: device("linkedin.com/feed/", head() + `<div class="box"><div class="kind"><span>Running</span></div>
-    <div class="row"><div class="top"><span class="nm">VP Sales · SaaS · 51–200</span>${chip("38 / 100")}</div><div class="bar"><i style="width:38%"></i></div><span class="sub">31 emails · 22 phones so far · 87 credits</span></div></div>` + pin(1,70)),
-    notes: ["Progress follows the rep to any page. Each person found becomes a row in My table."] },
+ { id: "company", label: "Company", title: "A company website or LinkedIn company page", job: "Find the right people at this account.", frames: [
+  { t: "Company page", crit: ["C1","C11","C2"],
+    mock: panel("northwind.io/pricing", head() + card("Company website","northwind.io","read from the address", `<div class="field"><span>HQ</span><span>San Francisco, CA</span></div><div class="field"><span>Employees</span><span>210</span></div>` + more([["Company details","~1 credit"]])), cta("Find VP Sales + RevOps","~6 credits")),
+    goal: "Find who to contact here.", needs: "That it's the right company, plus HQ and size.", cta: "Find VP Sales + RevOps · ~6 credits", sys: "Uses the domain only. Tool sites (Google, Gmail, GitHub) never show as companies." },
  ]},
- { id: "crm", label: "J5 CRM", title: "CRM record", job: "Hand it off without copy-paste.", frames: [
-  { t: "Salesforce contact", crit: ["C11","C7"], mock: device("acme.lightning.force.com/lightning/r/Contact/003Ak…", head() + card("CRM record","Contact 003Ak00000ABCDe","Salesforce · from URL", `
-    <div class="btns">${btn("Fill missing email + phone","~3 credits","pri")}${btn("Job change check","1 credit")}</div>`) + pin(1,58)),
-    notes: ["The record name isn't in the URL, so the card shows the object and id until a play returns the name. HubSpot records work the same way."] },
+ { id: "search", label: "Search", title: "A search or list", job: "Turn a search into a list, without paging.", frames: [
+  { t: "Import with a limit", crit: ["C8","C6","C12"],
+    mock: panel("linkedin.com/sales/search/people?query=…", head() + card("Sales Navigator search","VP Sales · SaaS · 51–200","read from the address", `<div class="field"><span>How many</span><span class="input" style="padding:3px 8px"><span style="color:var(--ink)">25</span><span>people</span></span></div><span class="sub">Deepline fetches the results. Nothing is read from this page.</span>`), cta("Import and enrich: 25 people","up to 75 credits")),
+    goal: "Turn this search into a list.", needs: "How many, the cost, that LinkedIn isn't touched.", cta: "Import and enrich: 25 people · up to 75 credits", sys: "Hands the search address to the team's import; each person becomes a saved lookup." },
+  { t: "Over 25 credits", crit: ["C6"],
+    mock: panel("linkedin.com/sales/search/people?query=…", head() + card("Sales Navigator search","VP Sales · SaaS · 51–200","read from the address", `<div class="alert warn"><b>This may use up to 300 credits</b><span>You're only charged for what's found.</span><span class="lnk">Cancel</span></div>`), cta("Go ahead","up to 300 credits")),
+    goal: "Avoid a surprise bill.", needs: "The worst-case cost.", cta: "Go ahead · up to 300 credits", sys: "The confirm is part of the panel, never a pop-up." },
+  { t: "Importing", crit: ["C8","C9"],
+    mock: panel("linkedin.com/feed/", head() + `<div class="box"><div class="row"><div class="top"><span class="nm">VP Sales · SaaS · 51–200</span>${chip("38 of 100")}</div><div class="bar"><i style="width:38%"></i></div><span class="sub">31 emails, 22 phones so far</span></div></div>`, cta("Search your lookups")),
+    goal: "Get on with the day.", needs: "Progress, from any page.", cta: "Search your lookups", sys: "Keeps going with the panel closed." },
  ]},
- { id: "table", label: "J6 My table", title: "My table", job: "Find who I looked up last week.", frames: [
-  { t: "History", crit: ["C9","C13","C3"], mock: device("linkedin.com/feed/", head() + tableSec(`
-    <div class="row"><div class="top"><span class="nm">Maya Okafor</span>${chip("done","ok")}</div><span class="sub">Find email + phone · 2m ago</span>${val("maya@northwind.io","verified")}</div>
-    <div class="row"><div class="top"><span class="nm">VP Sales · SaaS · 51–200</span>${chip("38 / 100")}</div><span class="sub">Search import · 5m ago</span></div>
-    <div class="row"><div class="top"><span class="nm">northwind.io</span>${chip("done","ok")}</div><span class="sub">Company profile · 2d ago</span></div>
-    <div class="row"><div class="top"><span class="nm">Sam Lee</span>${chip("no match","bad")}</div><span class="sub">Find email + phone · 3d ago</span></div>`) + pin(1,64) + pin(2,108)),
-    notes: ["Filter across name, email and play. Clicking a name reopens its page in the current tab.", "Newest first, with the same status chips as the page card."],
-    ask: "Should My table offer “Export CSV”, or is the workspace table (SQL, plays) enough?" },
+ { id: "crm", label: "CRM record", title: "A Salesforce or HubSpot record", job: "Fill gaps without leaving the CRM.", frames: [
+  { t: "CRM contact", crit: ["C11","C7"],
+    mock: panel("acme.lightning.force.com/lightning/r/Contact/003Ak…", head() + card("Salesforce contact","Contact 003Ak00000ABCDe","read from the address"), cta("Fill missing email + phone","~3 credits")),
+    goal: "Complete this record.", needs: "That the panel knows which record.", cta: "Fill missing email + phone · ~3 credits", sys: "The team's CRM action gets the record id and writes back to Salesforce." },
  ]},
- { id: "reopen", label: "J7 Reopen", title: "Closed mid-run", job: "Don't lose my work.", frames: [
-  { t: "Reopening after runs finished", crit: ["C9","C10"], mock: device("linkedin.com/feed/", head() + `<div class="note">2 runs finished while the panel was closed.</div>` + tableSec(`
-    <div class="row"><div class="top"><span class="nm">Priya Shah</span>${chip("done","ok")}</div><span class="sub">Find email + phone · finished 4m ago</span></div>
-    <div class="row"><div class="top"><span class="nm">Leo Martins</span>${chip("failed","bad")}</div><span class="sub">Provider timeout · 0 credits</span><span class="lnk">Retry</span></div>`) + pin(1,40) + pin(2,170)),
-    notes: ["On open, every pending row is checked against Deepline and finished. A one-line summary says what changed.", "Failures keep their reason and a Retry; retry starts only that run."] },
+ { id: "lookups", label: "Your lookups", title: "Everyone you've looked up", job: "Find who I looked up last week.", frames: [
+  { t: "Any other page", crit: ["C9","C13","C5"],
+    mock: panel("mail.google.com/mail/u/0/#inbox", head() + `<div class="box"><span class="sub">Open a LinkedIn profile, company or search, a Sales Navigator lead or list, a CRM record, or any company website.</span></div>` + tableSec(`<div class="row"><div class="top"><span class="nm">Maya Okafor</span>${chip("done","ok")}</div><span class="sub">Find email + phone · 2m ago</span>${val("maya@northwind.io","verified")}</div><div class="row"><div class="top"><span class="nm">Priya Shah</span>${chip("done","ok")}</div><span class="sub">Finished while the panel was closed</span></div><div class="row"><div class="top"><span class="nm">Leo Martins</span>${chip("didn't finish","bad")}</div><span class="sub">A provider timed out. Not charged.</span></div>`), cta("Search your lookups")),
+    goal: "Find someone again.", needs: "Names, emails, what's done and what failed.", cta: "Search your lookups", sys: "Every lookup is saved in Deepline; anything that finished while closed is filled in on open." },
  ]},
- { id: "idle", label: "Other pages", title: "Unsupported page", job: "Stay out of my way.", frames: [
-  { t: "Page with nothing to act on", crit: ["C5","C10"], mock: device("mail.google.com/mail/u/0/#inbox", head() + `
-    <div class="box"><span class="sub">Open a LinkedIn profile, company, Sales Navigator lead, list or search, a Salesforce or HubSpot record, or any company website.</span></div>` + tableSec(`<div class="row"><div class="top"><span class="nm">Maya Okafor</span>${chip("done","ok")}</div><span class="sub">2m ago</span></div>`)),
-    notes: ["Says which pages work, and My table stays available so the panel is still useful."] },
- ]},
- { id: "later", label: "Later", later: true, title: "Later scope", job: "Shown so you can approve or cut them.", frames: [
-  { t: "Gmail thread presence", later: true, crit: ["C2","C7"], mock: `<div class="device" role="img" aria-label="Gmail wireframe">${url("mail.google.com/mail/u/0/#inbox/FMfcg…")}<div class="gmail"><b>Re: pilot pricing</b><span class="sub">maya@northwind.io</span><span class="pill">● Maya Okafor · in your table · 12d</span></div><div class="p">${head()}${card("Email thread","maya@northwind.io","sender · read on click", `<div class="btns">${btn("Log reply to HubSpot")}${btn("Research for call","~2 credits")}</div>`)}</div></div>`,
-    notes: ["The address is in the page, not the URL, so this needs a Gmail-only permission and a read-on-click design. It breaks the URL-only rule for one site."],
-    ask: "Worth the extra permission for v1.1, or keep the URL-only promise?" },
-  { t: "Pick people on a results page", later: true, crit: ["C8"], mock: `<div class="device" role="img" aria-label="Selection wireframe">${url("linkedin.com/sales/search/people?query=…")}<div class="results"><div><i class="on"></i>Maya Okafor · VP Sales</div><div><i></i>Sam Lee · Head of RevOps</div><div><i class="on"></i>Priya Shah · CRO</div></div><div class="p">${head()}${btn("Find email + phone for 2 selected","~6 credits","pri")}</div></div>`,
-    notes: ["Checkboxes on LinkedIn would mean injecting into the page, which LinkedIn detects. Capped search import covers the volume case without it."],
-    ask: "Cut, or keep for a later opt-in mode?" },
+ { id: "later", label: "Later", later: true, title: "Later", job: "Shown so you can approve or cut them.", frames: [
+  { t: "Gmail sender", later: true, crit: ["C2","C7"],
+    mock: `<div class="device" role="img" aria-label="Gmail wireframe">${url("mail.google.com/mail/u/0/#inbox/FMfcg…")}<div class="gmail"><b>Re: pilot pricing</b><span class="sub">maya@northwind.io</span><span class="pill">Maya Okafor · looked up 12d ago</span></div><div class="p">${head()}${card("Email","maya@northwind.io","read when you click")}</div>${cta("Log reply to HubSpot")}</div>`,
+    goal: "Know who emailed me and log it.", needs: "The sender's saved details.", cta: "Log reply to HubSpot", sys: "Needs a Gmail-only permission to read the sender on click. Breaks the address-only rule for one site.", ask: "Worth the extra permission, or keep the address-only promise?" },
+  { t: "Pick people on a results page", later: true, crit: ["C8"],
+    mock: `<div class="device" role="img" aria-label="Selection wireframe">${url("linkedin.com/sales/search/people?query=…")}<div class="results"><div><i class="on"></i>Maya Okafor · VP Sales</div><div><i></i>Sam Lee · Head of RevOps</div><div><i class="on"></i>Priya Shah · CRO</div></div><div class="p">${head()}</div>${cta("Find email + phone for 2","~6 credits")}</div>`,
+    goal: "Choose exactly who.", needs: "Checkboxes on LinkedIn.", cta: "Find email + phone for 2", sys: "Needs scripts inside LinkedIn, which LinkedIn detects. The capped import covers volume without it.", ask: "Cut, or keep as a later opt-in?" },
  ]},
 ];
 
@@ -336,14 +322,19 @@ document.getElementById("jumps").innerHTML = SECTIONS.map(s => `<a href="#${s.id
 let n = 0;
 document.getElementById("sections").innerHTML = SECTIONS.map(s => `
   <section class="section" id="${s.id}" aria-labelledby="h-${s.id}">
-    <div class="section-head"><span class="eyebrow">${esc(s.label)}</span><h2 id="h-${s.id}">${esc(s.title)}</h2><p class="job">${esc(s.job)}</p></div>
-    ${s.frames.map(f => { n++; const pts = f.crit.reduce((a, c) => a + W[c][2], 0); return `
+    <div class="section-head"><h2 id="h-${s.id}">${esc(s.title)}</h2><p class="job">${esc(s.job)}</p></div>
+    ${s.frames.map(f => { n++; return `
     <article class="frame ${f.later ? "is-later" : ""}">
       <div>${f.mock}</div>
       <div class="notes">
-        <div class="frame-title"><span class="step">Step ${n}</span><h3>${esc(f.t)}</h3>${f.later ? `<span class="tag-later">Later</span>` : ""}</div>
-        <ol>${f.notes.map(x => `<li><span>${esc(x).replace(/`([^`]+)`/g, "<code>$1</code>")}</span></li>`).join("")}</ol>
-        <div class="crit" aria-label="Rubric criteria targeted">${f.crit.map(c => `<span title="${esc(W[c][1])}"><b>${c}</b> ${esc(W[c][1])} · ${W[c][2]}</span>`).join("")}</div>
+        <div class="frame-title"><span class="step">${n}</span><h3>${esc(f.t)}</h3>${f.later ? `<span class="tag-later">Later</span>` : ""}</div>
+        <dl class="spec">
+          <div><dt>Rep's goal</dt><dd>${esc(f.goal)}</dd></div>
+          <div><dt>Must see</dt><dd>${esc(f.needs)}</dd></div>
+          <div class="pri"><dt>Priority action</dt><dd>${esc(f.cta)}</dd></div>
+          <div><dt>Deepline does</dt><dd>${esc(f.sys)}</dd></div>
+        </dl>
+        <div class="crit" aria-label="Rubric criteria this screen targets">${f.crit.map(c => `<span title="${esc(W[c][1])}"><b>${c}</b> ${esc(W[c][1])} · ${W[c][2]}</span>`).join("")}</div>
         ${f.ask ? `<p class="ask"><b>For you:</b> ${esc(f.ask)}</p>` : ""}
       </div>
     </article>`; }).join("")}

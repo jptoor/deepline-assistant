@@ -23,6 +23,20 @@ export interface PlaySummary {
   required: string[];
   /** Keys a declared `context` object accepts; null = any. */
   contextFields: string[] | null;
+  /** Credits per run (or per row for row-unit plays), when Deepline can estimate it. */
+  cost: { low: number; high: number; perRow: boolean } | null;
+}
+
+/** "~3 credits", "1–4 credits", "cost varies". Per-row plays scale by the rep's cap. */
+export function costLabel(cost: PlaySummary["cost"], rows = 1): string {
+  if (!cost) return "cost varies";
+  const k = cost.perRow ? rows : 1;
+  const lo = Math.round(cost.low * k), hi = Math.round(cost.high * k);
+  if (hi === 0) return "free";
+  return lo === hi ? `~${hi} credit${hi === 1 ? "" : "s"}` : `${lo}–${hi} credits`;
+}
+export function maxCredits(cost: PlaySummary["cost"], rows = 1): number | null {
+  return cost ? cost.high * (cost.perRow ? rows : 1) : null;
 }
 
 /** Context fields keyed by the input names plays commonly declare. The first
@@ -55,6 +69,13 @@ const ALIASES: Record<string, (c: PageContext) => unknown> = {
   url: (c) => c.linkedin_url ?? c.search_url ?? c.url,
   page_url: (c) => c.url,
   entity_key: (c) => c.entity_key,
+  email: (c) => c.email,
+  work_email: (c) => c.email,
+  professional_email: (c) => c.email,
+  phone: (c) => c.phone,
+  limit: (c) => c.limit,
+  max_results: (c) => c.limit,
+  max_people: (c) => c.limit,
   // A play that declares `context` gets the whole object.
   context: (c) => c
 };
@@ -107,12 +128,15 @@ function schemaFields(schema: unknown): { fields: string[]; required: string[]; 
 export function toSummary(p: Record<string, unknown>): PlaySummary | null {
   const playKey = typeof p.playKey === "string" ? p.playKey : typeof p.reference === "string" ? p.reference : null;
   if (!playKey) return null;
+  const est = (p.costEstimate ?? null) as { status?: string; lowCredits?: number; highCredits?: number; unit?: string } | null;
+  const cost = est?.status === "available" && typeof est.highCredits === "number" ? { low: est.lowCredits ?? est.highCredits, high: est.highCredits, perRow: est.unit === "row" } : null;
   return {
     playKey,
     displayName: typeof p.displayName === "string" && p.displayName ? p.displayName : playKey,
     description: typeof p.description === "string" ? p.description : null,
     origin: typeof p.origin === "string" ? p.origin : "owned",
-    ...schemaFields(p.inputSchema)
+    ...schemaFields(p.inputSchema),
+    cost
   };
 }
 
@@ -120,7 +144,7 @@ export function toSummary(p: Record<string, unknown>): PlaySummary | null {
 export async function listPlays(cred: Credential, fetchImpl: FetchLike = fetch): Promise<PlaySummary[]> {
   const out: PlaySummary[] = [];
   for (const origin of ["owned", "prebuilt"]) {
-    const json = await call<{ plays?: unknown[] }>(cred, `/api/v2/plays?origin=${origin}&limit=100`, fetchImpl);
+    const json = await call<{ plays?: unknown[] }>(cred, `/api/v2/plays?origin=${origin}&limit=100&include_cost_estimates=1`, fetchImpl);
     for (const p of json.plays ?? []) {
       const s = p && typeof p === "object" ? toSummary(p as Record<string, unknown>) : null;
       if (s && !out.some((o) => o.playKey === s.playKey)) out.push({ ...s, origin });

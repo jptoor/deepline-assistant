@@ -31,7 +31,23 @@ export interface PageContext {
   crm_system?: "salesforce" | "hubspot";
   crm_object?: string;
   crm_id?: string;
+  /** Set by the panel, not the page: the rep's import cap, or a finished result's contact fields for a handoff. */
+  limit?: number;
+  email?: string;
+  phone?: string;
 }
+
+export type PageGroup = "person" | "company" | "search" | "crm";
+export const KIND_GROUP: Partial<Record<PageKind, PageGroup>> = {
+  linkedin_person: "person",
+  salesnav_lead: "person",
+  linkedin_company: "company",
+  website: "company",
+  linkedin_search: "search",
+  salesnav_search: "search",
+  salesnav_list: "search",
+  crm_record: "crm"
+};
 
 /** Hosts that are tools, not companies: no "company website" context there. */
 const NOT_A_COMPANY = /(^|\.)(google|bing|duckduckgo|youtube|facebook|instagram|x|twitter|reddit|github|notion|slack|zoom|figma|deepline|chromewebstore\.google|gmail|outlook\.live|office|live|microsoft|apple|amazon|wikipedia)\.[a-z.]+$|(^|\.)(mail|docs|drive|calendar|meet)\.google\.com$/;

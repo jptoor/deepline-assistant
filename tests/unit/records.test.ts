@@ -20,3 +20,35 @@ describe("records", () => {
     expect(finishSql({ owner: "o", entity_key: "e", play_key: "p" }, "completed", { email: "j@acme.io" }, null)).toContain("COALESCE('j@acme.io', email)");
   });
 });
+
+import { DEFAULT_CONFIG, SETUP_SQL, parseConfig } from "../../src/shared/records";
+import { costLabel, maxCredits } from "../../src/shared/deepline";
+
+describe("team config", () => {
+  it("falls back to defaults for missing or malformed keys", () => {
+    expect(parseConfig(null)).toEqual(DEFAULT_CONFIG);
+    const c = parseConfig({ actions: { person: ["a", 3] }, handoffs: "x", confirm_over_credits: -1 });
+    expect(c.actions.person).toEqual(["a"]);
+    expect(c.actions.company).toEqual([]);
+    expect(c.handoffs).toEqual([]);
+    expect(c.confirm_over_credits).toBe(25);
+  });
+  it("seeds the default config without overwriting a team's", () => {
+    expect(SETUP_SQL.at(-1)).toContain("ON CONFLICT (id) DO NOTHING");
+  });
+});
+
+describe("cost labels", () => {
+  it("reads like a price tag", () => {
+    expect(costLabel(null)).toBe("cost varies");
+    expect(costLabel({ low: 3, high: 3, perRow: false })).toBe("~3 credits");
+    expect(costLabel({ low: 1, high: 1, perRow: false })).toBe("~1 credit");
+    expect(costLabel({ low: 1, high: 4, perRow: false })).toBe("1–4 credits");
+    expect(costLabel({ low: 0, high: 0, perRow: false })).toBe("free");
+  });
+  it("scales per-row plays by the import cap", () => {
+    expect(costLabel({ low: 2, high: 3, perRow: true }, 25)).toBe("50–75 credits");
+    expect(maxCredits({ low: 2, high: 3, perRow: true }, 25)).toBe(75);
+    expect(maxCredits({ low: 2, high: 3, perRow: false }, 25)).toBe(3);
+  });
+});

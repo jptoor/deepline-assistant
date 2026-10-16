@@ -25,6 +25,7 @@
     --button-neutral-border: #d9d9d6;
     --button-neutral-foreground: #242423;
     --accent: #f6f6f5;
+    --button-secondary: #242423; --button-secondary-hover: #3e3e3c; --button-secondary-foreground: #fcfcfc;
     --ring: var(--foreground);
     --success-fg: #1b7e44; --success-bg: #eafbf1; --success-border: #d5f6e3;
     --error-fg: #ad1f1f; --error-bg: #fbe9e9; --error-border: #f7d4d4;
@@ -43,6 +44,7 @@
       --border-hover: color-mix(in srgb, var(--foreground) 22%, transparent);
       --button-neutral: #313130; --button-neutral-hover: #3e3e3c; --button-neutral-border: #5c5c5a; --button-neutral-foreground: #fcfcfc;
       --accent: #292928;
+      --button-secondary: #3e3e3c; --button-secondary-hover: #5c5c5a; --button-secondary-foreground: #fcfcfc;
       --success-fg: #81e4aa; --success-bg: #061d10; --success-border: #12542d;
       --error-fg: #e87d7d; --error-bg: #1e0505; --error-border: #570f0f;
       --info-fg: #6ce8f9; --info-bg: #011e22; --info-border: #045762;
@@ -68,7 +70,10 @@
   .btn { min-height: 40px; border: 1px solid var(--button-neutral-border); background: var(--button-neutral); color: var(--button-neutral-foreground); border-radius: var(--radius-control); padding: 8px 10px; font-weight: 600; width: 100%; text-align: left; display: flex; justify-content: space-between; gap: 8px; align-items: center; transition: background-color 150ms ease, transform 100ms ease; }
   .btn:hover:not(:disabled) { background: var(--button-neutral-hover); }
   .btn:active:not(:disabled) { transform: scale(.96); }
-  .btn.primary { background: var(--button-neutral-hover); border-color: var(--border-hover); }
+  /* The one priority action: Deepline Button "secondary" (dark neutral). */
+  .btn.primary { background: var(--button-secondary); color: var(--button-secondary-foreground); border-color: var(--button-secondary); }
+  .btn.primary:hover:not(:disabled) { background: var(--button-secondary-hover); }
+  .btn.primary .why { color: var(--button-secondary-foreground); opacity: .75; }
   .btn .why { font-weight: 400; color: var(--foreground-muted); white-space: nowrap; }
   .stack { display: grid; gap: 6px; margin-top: 10px; }
   .link { background: none; border: 0; padding: 0; min-height: 40px; min-width: 40px; color: var(--foreground); }
@@ -89,13 +94,20 @@
   input[type=search], input[type=url] { width: 100%; min-height: 36px; border: 1px solid var(--border); border-radius: var(--radius-control); padding: 6px 10px; background: var(--card); }
   input:hover { border-color: var(--border-hover); }
   footer { padding: 0 14px 16px; }
-  details summary { cursor: pointer; }
+  .cap { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+  .cap input { width: 80px; min-height: 36px; border: 1px solid var(--border); border-radius: var(--radius-control); padding: 6px 10px; background: var(--background); }
+  .confirm { margin-top: 10px; background: var(--background); border: 1px solid var(--border-hover); border-radius: var(--radius-control); padding: 10px; display: grid; gap: 8px; }
+  .more { margin-top: 10px; display: grid; gap: 2px; }
+  .more .link { min-height: 36px; text-align: left; display: flex; justify-content: space-between; gap: 8px; width: 100%; }
+  .more .link .why { color: var(--foreground-muted); }
+  .cta { position: sticky; bottom: 0; padding: 10px 14px 14px; background: var(--background); border-top: 1px solid var(--border); }
+  .cta .btn { min-height: 44px; }
   @media (prefers-reduced-motion: reduce) { .btn { transition: none; } .btn:active:not(:disabled) { transform: none; } }
 </style>
 </head>
 <body>
 <header>
-  <b>Deepline Assistant</b>
+  <b>Deepline</b>
   <span id="who" class="small muted"></span>
 </header>
 <main>
@@ -103,47 +115,48 @@
 
   <section id="connect" hidden>
     <div class="card">
-      <div class="title">Connect your Deepline workspace</div>
-      <p class="small muted">Your plays run in Deepline and results are saved to your table there. This panel reads only the page address and title.</p>
-      <div class="stack">
-        <button id="signIn" class="btn primary">Sign in to Deepline</button>
-        <button id="approve" class="btn">Connect with device approval</button>
-      </div>
-      <p id="claimNote" class="small muted" hidden>Approve this browser in the Deepline tab. This panel connects as soon as you do.</p>
+      <div class="title">Sign in to start</div>
+      <p class="muted">Use the same Deepline account your team uses. You only do this once.</p>
+      <p class="muted">This panel connects by itself once you're signed in.</p>
+      <button id="approve" class="link">Trouble signing in? Approve this browser instead</button>
+      <p id="claimNote" class="muted" hidden>Click Approve in the Deepline tab that just opened. This panel connects as soon as you do.</p>
+    </div>
+  </section>
+
+  <section id="setup" hidden>
+    <div class="card">
+      <div class="title">Your team hasn't turned this on yet</div>
+      <p class="muted">Deepline couldn't finish setting up for your team. Send this to whoever manages Deepline on your team.</p>
+      <button id="retrySetup" class="link">Try again</button>
     </div>
   </section>
 
   <section id="page" hidden>
-    <h2>This page</h2>
     <div class="card">
-      <div id="pageKind" class="small muted"></div>
+      <div id="pageKind" class="muted"></div>
       <div id="pageLabel" class="title"></div>
       <ul id="pageRows" class="rows"></ul>
-      <div id="actions" class="stack"></div>
-      <div id="morePlays" hidden>
-        <input id="playFilter" type="search" placeholder="Find a play" aria-label="Find a play" style="margin-top:8px">
-      </div>
+      <label id="capRow" class="cap" hidden>Import up to <input id="cap" type="number" min="1" max="1000" step="1"> people</label>
+      <div id="confirm" class="confirm" hidden></div>
+      <div id="more" class="more" hidden><span class="muted">Other actions</span><div id="actions"></div></div>
     </div>
   </section>
 
   <section id="idle" hidden>
-    <div class="card small muted">Open a LinkedIn profile, company page, Sales Navigator lead, list or search, a Salesforce or HubSpot record, or any company website.</div>
+    <div class="card muted">Open a LinkedIn profile, company page or search, a Sales Navigator lead or list, a Salesforce or HubSpot record, or any company website.</div>
   </section>
 
   <section id="table" hidden>
-    <h2><span>My table</span><button id="refresh" class="link">Refresh</button></h2>
-    <input id="filter" type="search" placeholder="Filter by name, email, play" aria-label="Filter my table">
+    <h2><span>Your lookups</span><button id="refresh" class="link">Refresh</button></h2>
+    <input id="filter" type="search" placeholder="Search names and emails" aria-label="Search your lookups">
     <ul id="rows" class="rows" style="margin-top:6px"></ul>
-    <p id="empty" class="small muted" hidden>Results from plays you run here are saved to <code>assistant.records</code> in your workspace and listed here.</p>
+    <p id="empty" class="muted" hidden>People and companies you look up show up here, so you can find them again later.</p>
   </section>
 </main>
 <footer>
-  <details class="small muted">
-    <summary>Settings</summary>
-    <label>Deepline URL <input id="baseUrl" type="url"></label>
-    <div class="stack"><button id="disconnect" class="btn">Disconnect</button></div>
-  </details>
+  <button id="disconnect" class="link muted" hidden>Sign out of this panel</button>
 </footer>
+<div class="cta" id="ctaBar" hidden><button id="cta" class="btn primary"><span id="ctaLabel"></span><span id="ctaMeta" class="why"></span></button></div>
 <script type="module" src="sidepanel.js"></script>
 </body>
 </html>

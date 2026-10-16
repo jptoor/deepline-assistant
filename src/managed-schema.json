@@ -1,0 +1,6 @@
+{
+  "type": "object",
+  "properties": {
+    "baseUrl": { "type": "string", "title": "Deepline URL", "description": "Only for teams on a dedicated Deepline host. Leave unset for code.deepline.com." }
+  }
+}

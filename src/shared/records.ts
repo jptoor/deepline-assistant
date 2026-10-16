@@ -6,6 +6,45 @@
 import type { PageContext } from "./context";
 
 export const TABLE = "assistant.records";
+export const CONFIG_TABLE = "assistant.config";
+
+/** What the central team decides, so reps never configure anything: which
+ *  actions appear on which kind of page, which plays hand a finished result
+ *  off (CRM, sequence), and when a run needs a confirm. One row per workspace,
+ *  written by the setup play or created with these defaults on first open. */
+export interface AssistantConfig {
+  actions: { person: string[]; company: string[]; search: string[]; crm: string[] };
+  handoffs: string[];
+  /** What reps see on the button, keyed by play: "Find email + phone". */
+  labels: Record<string, string>;
+  confirm_over_credits: number;
+  default_import_cap: number;
+}
+export const DEFAULT_CONFIG: AssistantConfig = {
+  actions: { person: ["prebuilt/person-linkedin-to-email", "prebuilt/person-to-phone", "prebuilt/job-change-check"], company: [], search: [], crm: [] },
+  handoffs: [],
+  labels: { "prebuilt/person-linkedin-to-email": "Find work email", "prebuilt/person-to-phone": "Find phone", "prebuilt/job-change-check": "Check for a job change" },
+  confirm_over_credits: 25,
+  default_import_cap: 25
+};
+
+/** Missing keys fall back to the defaults; a malformed row never blanks the panel. */
+export function parseConfig(raw: unknown): AssistantConfig {
+  const c = (raw && typeof raw === "object" ? raw : {}) as Partial<AssistantConfig>;
+  const list = (v: unknown, d: string[]) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : d);
+  const num = (v: unknown, d: number) => (typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : d);
+  const a = (c.actions ?? {}) as Partial<AssistantConfig["actions"]>;
+  const d = DEFAULT_CONFIG;
+  return {
+    actions: { person: list(a.person, d.actions.person), company: list(a.company, d.actions.company), search: list(a.search, d.actions.search), crm: list(a.crm, d.actions.crm) },
+    handoffs: list(c.handoffs, d.handoffs),
+    labels: c.labels && typeof c.labels === "object" ? Object.fromEntries(Object.entries(c.labels).filter((e): e is [string, string] => typeof e[1] === "string" && !!e[1].trim())) : d.labels,
+    confirm_over_credits: num(c.confirm_over_credits, d.confirm_over_credits),
+    default_import_cap: num(c.default_import_cap, d.default_import_cap)
+  };
+}
+
+export const CONFIG_SQL = `SELECT config FROM ${CONFIG_TABLE} WHERE id = 'default'`;
 
 export const SETUP_SQL = [
   "CREATE SCHEMA IF NOT EXISTS assistant",
@@ -26,7 +65,9 @@ export const SETUP_SQL = [
   updated_at timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (owner, entity_key, play_key)
 )`,
-  `CREATE INDEX IF NOT EXISTS records_owner_updated ON ${TABLE} (owner, updated_at DESC)`
+  `CREATE INDEX IF NOT EXISTS records_owner_updated ON ${TABLE} (owner, updated_at DESC)`,
+  `CREATE TABLE IF NOT EXISTS ${CONFIG_TABLE} (id text PRIMARY KEY, config jsonb NOT NULL, updated_at timestamptz NOT NULL DEFAULT now())`,
+  `INSERT INTO ${CONFIG_TABLE} (id, config) VALUES ('default', '${JSON.stringify(DEFAULT_CONFIG)}'::jsonb) ON CONFLICT (id) DO NOTHING`
 ];
 
 export interface RecordRow {
