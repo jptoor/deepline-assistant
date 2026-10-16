@@ -22,12 +22,12 @@ type SetupInput = {
 };
 
 const DEFAULTS = {
-  person_actions: ['prebuilt/person-linkedin-to-email', 'prebuilt/person-to-phone', 'prebuilt/job-change-check'],
+  person_actions: ['prebuilt/deepline-assistant', 'prebuilt/job-change-check'],
   company_actions: [] as string[],
   search_actions: [] as string[],
   crm_actions: [] as string[],
   handoffs: [] as string[],
-  labels: { 'prebuilt/person-linkedin-to-email': 'Find work email', 'prebuilt/person-to-phone': 'Find phone', 'prebuilt/job-change-check': 'Check for a job change' } as Record<string, string>,
+  labels: { 'prebuilt/deepline-assistant': 'Find email + phone', 'prebuilt/job-change-check': 'Check for a job change' } as Record<string, string>,
   confirm_over_credits: 25,
   default_import_cap: 25,
 };

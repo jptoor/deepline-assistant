@@ -21,7 +21,7 @@ Run the **Deepline Assistant setup** play once in the Deepline app (`examples/as
 - the button text reps see for each action;
 - when a run asks before spending (default: over 25 credits) and the default search import size.
 
-Run it again to change anything; reps pick it up the next time they open the panel. If nobody has run it, the panel sets itself up with defaults (work email, phone, job change check) on the first rep's first open.
+Run it again to change anything; reps pick it up the next time they open the panel. If nobody has run it, the panel sets itself up with defaults (email + phone, job change check) on the first rep's first open.
 
 To roll out to the whole team, force-install the extension through Google Admin. Teams on a dedicated Deepline host set `baseUrl` through Chrome policy (`src/managed-schema.json`).
 

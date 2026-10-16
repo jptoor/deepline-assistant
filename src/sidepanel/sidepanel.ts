@@ -229,7 +229,8 @@ async function run(play: PlaySummary, ctx: PageContext) {
 
 /* ---------------------------------------------------------------- render */
 
-const copyBtn = (v: string) => h("button", { class: "val", title: "Copy", on: { click: () => void copy(v) } }, v);
+/** A found value with what it is, click to copy. Emails reach the table only when a provider verified them. */
+const copyBtn = (v: string, what: string) => h("div", { class: "found" }, h("button", { class: "val", title: "Copy", on: { click: () => void copy(v) } }, v), h("span", { class: "muted" }, what));
 async function copy(v: string) {
   await navigator.clipboard.writeText(v).catch(() => undefined);
 }
@@ -288,7 +289,7 @@ function plan(): { cta: Cta | null; others: { label: string; meta: string; run: 
   else if (actions[0]) cta = { ...item(actions[0]), label: `Look up again: ${actions[0].displayName}` };
 
   const ctaPlay = cta && fresh[0] && cta.label === label(fresh[0]) ? fresh[0].playKey : null;
-  const others = actions.filter((p) => p.playKey !== ctaPlay).map((p) => {
+  const others = actions.filter((p) => p.playKey !== ctaPlay && !isBusy(entity, p.playKey)).map((p) => {
     const done = rows.some((r) => r.play_key === p.playKey && r.status === "completed");
     return { ...item(p), label: done ? `Look up again: ${p.displayName}` : label(p) };
   });
@@ -311,9 +312,9 @@ function rowItem(r: RecordRow, onPage: boolean): HTMLElement {
       h("span", { class: `chip ${r.status}` }, STATUS_LABEL[r.status] ?? r.status)
     ),
     h("span", { class: "muted" }, onPage ? ago(r.updated_at) : `${playName(r.play_key)} · ${ago(r.updated_at)}`),
-    r.email ? copyBtn(r.email) : null,
-    r.phone ? copyBtn(r.phone) : null,
-    r.status === "completed" && !r.email && !r.phone ? h("span", { class: "muted" }, "Nothing found. Misses are free.") : null,
+    r.email ? copyBtn(r.email, "verified email") : null,
+    r.phone ? copyBtn(r.phone, "phone") : null,
+    r.status === "completed" && !r.email && !r.phone && /linkedin_person|salesnav_lead|crm_record/.test(r.kind ?? "") ? h("span", { class: "muted" }, "Nothing found. Misses are free.") : null,
     r.error ? h("span", { class: "err" }, r.error) : null,
     ...handoffNote
   );
@@ -341,9 +342,12 @@ function render() {
   if (!ready) return;
 
   if (ctx.entity_key) {
-    $("pageKind").textContent = KIND_LABEL[ctx.kind];
+    const kindLine = ctx.kind === "crm_record" ? `${ctx.crm_system === "hubspot" ? "HubSpot" : "Salesforce"} ${ctx.crm_object?.toLowerCase() ?? "record"}` : KIND_LABEL[ctx.kind];
+    $("pageKind").textContent = ctx.label === kindLine ? "" : kindLine;
+    $("pageKind").hidden = !$("pageKind").textContent;
     $("pageLabel").textContent = ctx.label;
-    $("pageRows").replaceChildren(...state.rows.filter((r) => r.entity_key === ctx.entity_key).map((r) => rowItem(r, true)));
+    const pageRows = state.rows.filter((r) => r.entity_key === ctx.entity_key && !state.config.handoffs.includes(r.play_key));
+    $("pageRows").replaceChildren(...(pageRows.length ? pageRows.map((r) => rowItem(r, true)) : [h("li", { class: "muted" }, "Not looked up yet.")]));
     $("capRow").hidden = KIND_GROUP[ctx.kind] !== "search" || !pageActions(ctx).length;
     const c = state.confirming;
     $("confirm").hidden = !c;
@@ -353,9 +357,10 @@ function render() {
     if (!pageActions(ctx).length && !state.rows.some((r) => r.entity_key === ctx.entity_key)) $("pageRows").replaceChildren(h("li", { class: "muted" }, "Your team hasn't added actions for this kind of page yet."));
   }
   const q = ($("filter") as HTMLInputElement).value.trim().toLowerCase();
-  const rows = q ? state.rows.filter((r) => [r.label, r.email, r.phone].some((v) => v?.toLowerCase().includes(q))) : state.rows;
+  const mine = state.rows.filter((r) => !state.config.handoffs.includes(r.play_key));
+  const rows = q ? mine.filter((r) => [r.label, r.email, r.phone].some((v) => v?.toLowerCase().includes(q))) : mine;
   $("rows").replaceChildren(...rows.map((r) => rowItem(r, false)));
-  $("empty").hidden = state.rows.length > 0;
+  $("empty").hidden = mine.length > 0;
 }
 
 let ctaRun: () => void = () => undefined;

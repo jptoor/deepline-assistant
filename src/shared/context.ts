@@ -95,12 +95,12 @@ export function pageContext(rawUrl: string | undefined, title = ""): PageContext
       return { kind: "linkedin_company", entity_key: `linkedin:company:${slug}`, url: u.href, label: name ?? slug, company_linkedin_url: isSales ? u.href.split("?")[0] : `https://www.linkedin.com/company/${slug}/`, ...(name ? { company_name: name } : {}) };
     }
     if (path.startsWith("/sales/search/people") || path.startsWith("/sales/search/company")) {
-      return { kind: "salesnav_search", entity_key: `search:${u.href}`, url: u.href, label: "Sales Navigator search", search_url: u.href };
+      return { kind: "salesnav_search", entity_key: `search:${u.href}`, url: u.href, label: "People search in Sales Navigator", search_url: u.href };
     }
     m = path.match(/^\/sales\/lists\/(?:people|company)\/(\d+)/);
     if (m) return { kind: "salesnav_list", entity_key: `salesnav:list:${m[1]}`, url: u.href, label: titleName(title) ?? "Sales Navigator list", search_url: u.href };
     if (path.startsWith("/search/results/")) {
-      return { kind: "linkedin_search", entity_key: `search:${u.href}`, url: u.href, label: "LinkedIn search", search_url: u.href };
+      return { kind: "linkedin_search", entity_key: `search:${u.href}`, url: u.href, label: "People search on LinkedIn", search_url: u.href };
     }
     return none;
   }

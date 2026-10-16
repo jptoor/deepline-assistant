@@ -21,9 +21,9 @@ export interface AssistantConfig {
   default_import_cap: number;
 }
 export const DEFAULT_CONFIG: AssistantConfig = {
-  actions: { person: ["prebuilt/person-linkedin-to-email", "prebuilt/person-to-phone", "prebuilt/job-change-check"], company: [], search: [], crm: [] },
+  actions: { person: ["prebuilt/deepline-assistant", "prebuilt/job-change-check"], company: [], search: [], crm: [] },
   handoffs: [],
-  labels: { "prebuilt/person-linkedin-to-email": "Find work email", "prebuilt/person-to-phone": "Find phone", "prebuilt/job-change-check": "Check for a job change" },
+  labels: { "prebuilt/deepline-assistant": "Find email + phone", "prebuilt/job-change-check": "Check for a job change" },
   confirm_over_credits: 25,
   default_import_cap: 25
 };
